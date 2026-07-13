@@ -1,0 +1,38 @@
+{
+ "doctype": "DocType",
+ "name": "Delivery Trip Delivery Note",
+ "module": "Logistics",
+ "is_custom": 0,
+ "is_submittable": 0,
+ "is_virtual": 0,
+ "is_tree": 0,
+ "is_child_table": 0,
+ "is_table": 1,
+ "is_single": 0,
+ "editable_grid": 1,
+ "fields": [
+  {
+   "fieldname": "delivery_note",
+   "fieldtype": "Link",
+   "label": "Delivery Note",
+   "options": "Delivery Note",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 6
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "delivery_note.customer",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 3
+  }
+ ],
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

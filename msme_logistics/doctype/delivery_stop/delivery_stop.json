@@ -1,0 +1,98 @@
+{
+ "doctype": "DocType",
+ "name": "Delivery Stop",
+ "module": "Logistics",
+ "is_custom": 0,
+ "is_submittable": 0,
+ "is_virtual": 0,
+ "is_tree": 0,
+ "is_child_table": 0,
+ "is_table": 1,
+ "is_single": 0,
+ "editable_grid": 1,
+ "fields": [
+  {
+   "fieldname": "sequence_no",
+   "fieldtype": "Int",
+   "label": "Sequence No",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "search_index": 1
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "delivery_window_start",
+   "fieldtype": "Time",
+   "label": "Delivery Window Start",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "delivery_window_end",
+   "fieldtype": "Time",
+   "label": "Delivery Window End",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nDelivered\nFailed\nRescheduled",
+   "default": "Pending",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "actual_arrival_time",
+   "fieldtype": "Datetime",
+   "label": "Actual Arrival Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_pod",
+   "fieldtype": "Section Break",
+   "label": "Proof of Delivery"
+  },
+  {
+   "fieldname": "pod_image",
+   "fieldtype": "Attach",
+   "label": "POD Image"
+  },
+  {
+   "fieldname": "column_break_pod",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pod_signature",
+   "fieldtype": "Signature",
+   "label": "POD Signature"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

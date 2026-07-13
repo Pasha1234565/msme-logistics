@@ -1,0 +1,205 @@
+{
+ "doctype": "DocType",
+ "name": "Delivery Trip",
+ "module": "Logistics",
+ "is_custom": 0,
+ "is_submittable": 1,
+ "is_virtual": 0,
+ "is_tree": 0,
+ "is_child_table": 0,
+ "is_table": 0,
+ "is_single": 0,
+ "editable_grid": 1,
+ "autoname": "naming_series:",
+ "naming_series": "DT-.YYYY.-.####",
+ "title_field": "transporter",
+ "track_changes": 1,
+ "track_views": 1,
+ "workflow": 1,
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "DT-.YYYY.-.####",
+   "default": "DT-.YYYY.-.####",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "transporter",
+   "fieldtype": "Link",
+   "label": "Transporter",
+   "options": "Transporter",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "driver_name",
+   "fieldtype": "Data",
+   "label": "Driver Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_vehicle",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vehicle_no",
+   "fieldtype": "Data",
+   "label": "Vehicle No",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_break_route",
+   "fieldtype": "Section Break",
+   "label": "Route"
+  },
+  {
+   "fieldname": "origin_warehouse",
+   "fieldtype": "Link",
+   "label": "Origin Warehouse",
+   "options": "Warehouse",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "total_distance_km",
+   "fieldtype": "Float",
+   "label": "Total Distance (km)",
+   "description": "Estimated or actual total trip distance"
+  },
+  {
+   "fieldname": "section_break_delivery_stops",
+   "fieldtype": "Section Break",
+   "label": "Delivery Stops"
+  },
+  {
+   "fieldname": "delivery_stops",
+   "fieldtype": "Table",
+   "label": "Delivery Stops",
+   "options": "Delivery Stop",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_delivery_notes",
+   "fieldtype": "Section Break",
+   "label": "Linked Delivery Notes"
+  },
+  {
+   "fieldname": "linked_delivery_notes",
+   "fieldtype": "Table",
+   "label": "Linked Delivery Notes",
+   "options": "Delivery Trip Delivery Note",
+   "description": "Link to standard ERPNext Delivery Notes for this trip"
+  },
+  {
+   "fieldname": "section_break_status",
+   "fieldtype": "Section Break",
+   "label": "Status Tracking"
+  },
+  {
+   "fieldname": "trip_status",
+   "fieldtype": "Select",
+   "label": "Trip Status",
+   "options": "Planned\nDispatched\nIn Transit\nCompleted\nReconciled",
+   "default": "Planned",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "trip_date",
+   "fieldtype": "Date",
+   "label": "Trip Date",
+   "default": "Today",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "planned_dispatch_date",
+   "fieldtype": "Date",
+   "label": "Planned Dispatch Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_timing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "actual_dispatch_time",
+   "fieldtype": "Datetime",
+   "label": "Actual Dispatch Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_time",
+   "fieldtype": "Datetime",
+   "label": "Completed Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Delivery Trip",
+   "no_copy": 1,
+   "hidden": 1,
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "amend": 1,
+   "cancel": 1,
+   "submit": 1,
+   "email": 1,
+   "print": 1,
+   "import": 1,
+   "export": 1,
+   "report": 1,
+   "share": 1
+  },
+  {
+   "role": "Dispatch Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "amend": 1,
+   "cancel": 1,
+   "submit": 1,
+   "email": 1,
+   "print": 1,
+   "import": 1,
+   "export": 1,
+   "report": 1,
+   "share": 1
+  },
+  {
+   "role": "Driver",
+   "read": 1,
+   "write": 1,
+   "email": 0,
+   "print": 0,
+   "report": 1,
+   "share": 0
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

@@ -1,0 +1,24 @@
+{
+ "doctype": "Report",
+ "name": "Cost Per Delivery by Transporter",
+ "module": "Logistics",
+ "is_standard": "Yes",
+ "report_type": "Query Report",
+ "query": "SELECT\n\ttcr.name as \"Trip Cost Reconciliation:Link/Trip Cost Reconciliation:200\",\n\ttcr.delivery_trip as \"Delivery Trip:Link/Delivery Trip:150\",\n\tdt.transporter as \"Transporter:Link/Transporter:150\",\n\tdt.trip_date as \"Trip Date:Date:120\",\n\ttcr.fuel_cost as \"Fuel Cost:Currency:120\",\n\ttcr.transporter_payout as \"Transporter Payout:Currency:150\",\n\ttcr.total_stops as \"Total Stops:Int:100\",\n\ttcr.cost_per_stop as \"Cost Per Stop:Currency:130\"\nFROM `tabTrip Cost Reconciliation` tcr\nINNER JOIN `tabDelivery Trip` dt ON dt.name = tcr.delivery_trip\nORDER BY dt.trip_date DESC",
+ "ref_doctype": "Trip Cost Reconciliation",
+ "chart_options": "{\"type\": \"Bar\", \"title\": \"Cost Per Stop by Transporter\", \"x_field\": \"transporter\", \"y_fields\": [\"cost_per_stop\"], \"filters\": []}",
+ "filters": [
+  {
+   "fieldname": "transporter",
+   "fieldtype": "Link",
+   "label": "Transporter",
+   "options": "Transporter",
+   "mandatory": 0
+  }
+ ],
+ "add_totals_row": 1,
+ "fields": [],
+ "sort_by": "",
+ "sort_order": "DESC",
+ "disabled": 0
+}

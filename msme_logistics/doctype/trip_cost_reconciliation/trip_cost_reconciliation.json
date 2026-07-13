@@ -1,0 +1,141 @@
+{
+ "doctype": "DocType",
+ "name": "Trip Cost Reconciliation",
+ "module": "Logistics",
+ "is_custom": 0,
+ "is_submittable": 0,
+ "is_virtual": 0,
+ "is_tree": 0,
+ "is_child_table": 0,
+ "is_table": 0,
+ "is_single": 0,
+ "editable_grid": 1,
+ "autoname": "naming_series:",
+ "naming_series": "TCR-.YYYY.-.####",
+ "title_field": "delivery_trip",
+ "track_changes": 1,
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "TCR-.YYYY.-.####",
+   "default": "TCR-.YYYY.-.####",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "delivery_trip",
+   "fieldtype": "Link",
+   "label": "Delivery Trip",
+   "options": "Delivery Trip",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "unique": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "reconciliation_date",
+   "fieldtype": "Date",
+   "label": "Reconciliation Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cost_details",
+   "fieldtype": "Section Break",
+   "label": "Cost Details"
+  },
+  {
+   "fieldname": "fuel_cost",
+   "fieldtype": "Currency",
+   "label": "Fuel Cost",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_cost",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "transporter_payout",
+   "fieldtype": "Currency",
+   "label": "Transporter Payout",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "computed_values",
+   "fieldtype": "Section Break",
+   "label": "Computed Values",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "total_stops",
+   "fieldtype": "Int",
+   "label": "Total Stops",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_computed",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cost_per_stop",
+   "fieldtype": "Currency",
+   "label": "Cost Per Stop",
+   "read_only": 1,
+   "description": "Auto-calculated: (Fuel Cost + Transporter Payout) / Total Stops"
+  },
+  {
+   "fieldname": "section_break_additional",
+   "fieldtype": "Section Break",
+   "label": "Additional Info"
+  },
+  {
+   "fieldname": "reconciled_by",
+   "fieldtype": "Link",
+   "label": "Reconciled By",
+   "options": "User",
+   "default": "__user"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "amend": 0,
+   "cancel": 0,
+   "submit": 0,
+   "email": 1,
+   "print": 1,
+   "import": 1,
+   "export": 1,
+   "report": 1,
+   "share": 1
+  },
+  {
+   "role": "Dispatch Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "import": 1,
+   "export": 1,
+   "report": 1,
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

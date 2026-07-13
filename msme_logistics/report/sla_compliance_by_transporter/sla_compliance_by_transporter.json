@@ -1,0 +1,34 @@
+{
+ "doctype": "Report",
+ "name": "SLA Compliance by Transporter",
+ "module": "Logistics",
+ "is_standard": "Yes",
+ "report_type": "Script Report",
+ "ref_doctype": "Delivery Trip",
+ "filters": [
+  {
+   "fieldname": "transporter",
+   "fieldtype": "Link",
+   "label": "Transporter",
+   "options": "Transporter",
+   "mandatory": 0
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "mandatory": 0
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "mandatory": 0
+  }
+ ],
+ "add_totals_row": 1,
+ "fields": [],
+ "sort_by": "",
+ "sort_order": "DESC",
+ "disabled": 0
+}

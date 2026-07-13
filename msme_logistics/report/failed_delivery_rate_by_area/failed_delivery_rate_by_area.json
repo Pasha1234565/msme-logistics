@@ -1,0 +1,29 @@
+{
+ "doctype": "Report",
+ "name": "Failed Delivery Rate by Area",
+ "module": "Logistics",
+ "is_standard": "Yes",
+ "report_type": "Query Report",
+ "query": "SELECT\n\tds.status as \"Status:Select:100\",\n\tds.customer as \"Customer:Link/Customer:150\",\n\tds.address as \"Address:Small Text:200\",\n\tdt.transporter as \"Transporter:Link/Transporter:150\",\n\tdt.name as \"Delivery Trip:Link/Delivery Trip:150\",\n\tdt.trip_date as \"Trip Date:Date:120\",\n\tRIGHT(ds.address, 6) as \"Pincode:Data:100\",\n\tCASE\n\t\tWHEN ds.status IN ('Failed', 'Rescheduled') THEN 'Yes'\n\t\tELSE 'No'\n\tEND as \"Is Issue:Data:80\"\nFROM `tabDelivery Stop` ds\nINNER JOIN `tabDelivery Trip` dt ON dt.name = ds.parent AND ds.parenttype = 'Delivery Trip'\nWHERE ds.status IN ('Failed', 'Rescheduled')\nORDER BY dt.trip_date DESC",
+ "ref_doctype": "Delivery Stop",
+ "chart_options": "{\"type\": \"Pie\", \"title\": \"Failed/Rescheduled by Status\", \"x_field\": \"status\", \"y_fields\": [\"is_issue\"], \"filters\": []}",
+ "filters": [
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "mandatory": 0
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "mandatory": 0
+  }
+ ],
+ "add_totals_row": 0,
+ "fields": [],
+ "sort_by": "",
+ "sort_order": "DESC",
+ "disabled": 0
+}

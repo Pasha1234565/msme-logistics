@@ -1,0 +1,5 @@
+recursive-include msme_logistics *.json
+recursive-include msme_logistics *.py
+recursive-include msme_logistics *.js
+recursive-include msme_logistics *.css
+recursive-include msme_logistics *.html
