@@ -18,6 +18,7 @@ def execute():
 
 	workspace = frappe.new_doc("Workspace")
 	workspace.name = workspace_name
+	workspace.title = workspace_name
 	workspace.workspace_name = workspace_name
 	workspace.label = workspace_name
 	workspace.module = "Logistics"
