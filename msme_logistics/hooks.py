@@ -37,10 +37,10 @@ doc_events = {
 # ------------------------------
 scheduler_events = {
 	"daily": [
-		"msme_logistics.tasks.daily_check_overdue_trips",
+		"msme_logistics.logistics.tasks.daily_check_overdue_trips",
 	],
 	"weekly": [
-		"msme_logistics.tasks.weekly_update_transporter_analytics",
+		"msme_logistics.logistics.tasks.weekly_update_transporter_analytics",
 	],
 }
 
