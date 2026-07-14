@@ -2,5 +2,6 @@
 msme_logistics.patches.create_msme_logistics_module.execute
 
 [post_model_sync]
+msme_logistics.patches.force_sync_doctypes.execute
 msme_logistics.patches.setup_workflow_notifications.execute
 msme_logistics.patches.add_demo_data.execute

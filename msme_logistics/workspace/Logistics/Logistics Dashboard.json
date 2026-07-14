@@ -33,6 +33,8 @@
    "link_to": "Delivery Trip",
    "doc_view": "New",
    "icon": "share",
+   "kanban_board": "",
+   "dependencies": "",
    "onboard": 1
   },
   {
@@ -41,13 +43,18 @@
    "link_to": "Transporter",
    "doc_view": "List",
    "icon": "user",
+   "kanban_board": "",
+   "dependencies": "",
    "onboard": 1
   },
   {
    "label": "Today's Stops",
    "type": "Report",
    "link_to": "Failed Delivery Rate by Area",
+   "doc_view": "",
    "icon": "list",
+   "kanban_board": "",
+   "dependencies": "",
    "onboard": 1
   },
   {
@@ -56,9 +63,22 @@
    "link_to": "Trip Cost Reconciliation",
    "doc_view": "List",
    "icon": "currency",
+   "kanban_board": "",
+   "dependencies": "",
    "onboard": 1
+  },
+  {
+   "label": "Transporter",
+   "type": "DocType",
+   "link_to": "Transporter",
+   "doc_view": "List",
+   "icon": "user",
+   "kanban_board": "",
+   "dependencies": "",
+   "onboard": 0
   }
  ],
+ "links": [],
  "number_cards": [
   {
    "number_card_name": "Trips In Transit Today",
@@ -94,6 +114,5 @@
    "color": "#28a745"
   }
  ],
- "custom_blocks": [],
- "links": []
+ "custom_blocks": []
 }
