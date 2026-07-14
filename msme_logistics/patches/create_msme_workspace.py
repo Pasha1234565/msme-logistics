@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import json
 import frappe
 
 
@@ -76,7 +77,6 @@ def build_workspace_content():
 			{"type": "Report", "link_to": "Failed Delivery Rate by Area", "label": "Failed Delivery Rate", "description": "Failed/rescheduled deliveries by area/pincode", "is_query_report": 1, "onboard": 1}
 		]}},
 	]
-	import json
 	return json.dumps(content)
 
 
