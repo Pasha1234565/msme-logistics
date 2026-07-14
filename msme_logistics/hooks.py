@@ -12,7 +12,6 @@ app_license = "MIT"
 # Fixtures
 # ------------------------------
 fixtures = [
-	{"dt": "Workspace", "filters": [["module", "=", "Logistics"]]},
 	{"dt": "DocType", "filters": [["module", "=", "Logistics"]]},
 	{"dt": "Report", "filters": [["module", "=", "Logistics"]]},
 	{"dt": "Workflow", "filters": [["document_type", "=", "Delivery Trip"]]},
