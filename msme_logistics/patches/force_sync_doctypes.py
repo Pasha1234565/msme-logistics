@@ -26,12 +26,9 @@ def execute():
 		print(f"  ❌ Error syncing DocTypes: {e}")
 		raise
 
-	# Also ensure workspace and reports are created via the built-in fixture sync
-	print("  🔄 Syncing fixtures (Workspace, Reports, etc.)...")
+	# Also ensure workspace is created from JSON file
+	print("  🔄 Syncing Workspace from JSON files...")
 	try:
-		from frappe.desk.doctype.workspace.workspace import Workspace
-
-		# Sync workspace from JSON file
 		app_path = frappe.get_app_path(app_name)
 		_sync_workspace(app_path)
 		frappe.db.commit()
