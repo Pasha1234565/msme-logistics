@@ -57,3 +57,8 @@ scheduler_events = {
 # Boot
 # ------------------------------
 # boot_session = boot_session
+
+# After Install / Migrate
+# ------------------------------
+after_install = "msme_logistics.logistics.setup.after_install"
+after_migrate = "msme_logistics.logistics.setup.after_migrate"
