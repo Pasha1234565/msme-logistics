@@ -5,4 +5,6 @@ msme_logistics.patches.create_msme_logistics_module.execute
 msme_logistics.patches.force_sync_doctypes.execute
 msme_logistics.patches.create_msme_workspace.execute
 msme_logistics.patches.setup_workflow_notifications.execute
+msme_logistics.patches.fix_child_table_parent_columns.execute
+msme_logistics.patches.create_dashboard_charts.execute
 msme_logistics.patches.add_demo_data.execute

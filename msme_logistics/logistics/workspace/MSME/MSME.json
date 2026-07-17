@@ -1,0 +1,202 @@
+{
+ "creation": "2026-07-17 12:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "icon": "truck",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "MSME",
+ "module": "Logistics",
+ "name": "MSME",
+ "owner": "Administrator",
+ "public": 1,
+ "sequence_id": 1.0,
+ "title": "MSME",
+ "shortcuts": [
+  {
+   "label": "New Delivery Trip",
+   "type": "DocType",
+   "link_to": "Delivery Trip",
+   "doc_view": "New",
+   "icon": "share",
+   "kanban_board": "",
+   "dependencies": "",
+   "onboard": 1
+  },
+  {
+   "label": "Transporter List",
+   "type": "DocType",
+   "link_to": "Transporter",
+   "doc_view": "List",
+   "icon": "user",
+   "kanban_board": "",
+   "dependencies": "",
+   "onboard": 1
+  },
+  {
+   "label": "Trip Cost Recon",
+   "type": "DocType",
+   "link_to": "Trip Cost Reconciliation",
+   "doc_view": "List",
+   "icon": "currency",
+   "kanban_board": "",
+   "dependencies": "",
+   "onboard": 1
+  },
+  {
+   "label": "Failed Deliveries",
+   "type": "Report",
+   "link_to": "Failed Delivery Rate by Area",
+   "doc_view": "",
+   "icon": "warning",
+   "kanban_board": "",
+   "dependencies": "",
+   "onboard": 1
+  }
+ ],
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Transactions",
+   "link_count": 0,
+   "onboard": 1,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Delivery Trip",
+   "link_count": 0,
+   "link_to": "Delivery Trip",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Trip Cost Reconciliation",
+   "link_count": 0,
+   "link_to": "Trip Cost Reconciliation",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Master Data",
+   "link_count": 0,
+   "onboard": 1,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Transporter",
+   "link_count": 0,
+   "link_to": "Transporter",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 0,
+   "onboard": 1,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "SLA Compliance by Transporter",
+   "link_count": 0,
+   "link_to": "SLA Compliance by Transporter",
+   "link_type": "Report",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Cost Per Delivery by Transporter",
+   "link_count": 0,
+   "link_to": "Cost Per Delivery by Transporter",
+   "link_type": "Report",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Failed Delivery Rate by Area",
+   "link_count": 0,
+   "link_to": "Failed Delivery Rate by Area",
+   "link_type": "Report",
+   "onboard": 1,
+   "type": "Link"
+  }
+ ],
+ "charts": [
+  {
+   "chart_name": "SLA Compliance",
+   "label": "SLA Compliance by Transporter",
+   "chart_type": "Report",
+   "report_name": "SLA Compliance by Transporter",
+   "width": "Half"
+  },
+  {
+   "chart_name": "Cost Per Delivery Trend",
+   "label": "Cost Per Delivery Trend",
+   "chart_type": "Report",
+   "report_name": "Cost Per Delivery by Transporter",
+   "width": "Half"
+  }
+ ],
+ "number_cards": [
+  {
+   "number_card_name": "Trips In Transit Today",
+   "label": "Trips In Transit Today",
+   "type": "Document Type",
+   "document_type": "Delivery Trip",
+   "function": "Count",
+   "filter_operator": "=",
+   "filter_field": "trip_status",
+   "filter_value": "In Transit",
+   "color": "#2490ef",
+   "show_trend": 1
+  },
+  {
+   "number_card_name": "Failed Deliveries This Week",
+   "label": "Failed Deliveries This Week",
+   "type": "Document Type",
+   "document_type": "Delivery Stop",
+   "function": "Count",
+   "filter_operator": "=",
+   "filter_field": "status",
+   "filter_value": "Failed",
+   "color": "#ff6b6b",
+   "show_trend": 1
+  },
+  {
+   "number_card_name": "Avg Cost Per Stop",
+   "label": "Avg Cost Per Stop",
+   "type": "Document Type",
+   "document_type": "Trip Cost Reconciliation",
+   "function": "Average",
+   "aggregate_function_based_on": "cost_per_stop",
+   "color": "#28a745"
+  }
+ ],
+ "custom_blocks": [],
+ "content": "[{\"id\":\"shortcuts-header\",\"type\":\"header\",\"data\":{\"text\":\"Shortcuts\",\"level\":4,\"col\":12}},{\"id\":\"sc-new-trip\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Delivery Trip\",\"col\":3}},{\"id\":\"sc-transporters\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Transporter List\",\"col\":3}},{\"id\":\"sc-cost-recon\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Trip Cost Recon\",\"col\":3}},{\"id\":\"sc-failed-del\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Failed Deliveries\",\"col\":3}},{\"id\":\"spacer-1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"metrics-header\",\"type\":\"header\",\"data\":{\"text\":\"Key Metrics\",\"level\":4,\"col\":12}},{\"id\":\"nc-transit\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Trips In Transit Today\",\"col\":4}},{\"id\":\"nc-failed\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Failed Deliveries This Week\",\"col\":4}},{\"id\":\"nc-cost\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Avg Cost Per Stop\",\"col\":4}},{\"id\":\"spacer-2\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"analytics-header\",\"type\":\"header\",\"data\":{\"text\":\"Analytics\",\"level\":4,\"col\":12}},{\"id\":\"chart-sla\",\"type\":\"chart\",\"data\":{\"chart_name\":\"SLA Compliance\",\"col\":6}},{\"id\":\"chart-cost\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Cost Per Delivery Trend\",\"col\":6}},{\"id\":\"spacer-3\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"links-header\",\"type\":\"header\",\"data\":{\"text\":\"Quick Links\",\"level\":4,\"col\":12}},{\"id\":\"card-transactions\",\"type\":\"card\",\"data\":{\"card_name\":\"Transactions\",\"col\":4}},{\"id\":\"card-master\",\"type\":\"card\",\"data\":{\"card_name\":\"Master Data\",\"col\":4}},{\"id\":\"card-reports\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}}]"
+}

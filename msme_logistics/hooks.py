@@ -12,6 +12,7 @@ app_license = "MIT"
 # Fixtures
 # ------------------------------
 fixtures = [
+	{"dt": "Workspace", "filters": [["module", "=", "Logistics"]]},
 	{"dt": "DocType", "filters": [["module", "=", "Logistics"]]},
 	{"dt": "Report", "filters": [["module", "=", "Logistics"]]},
 	{"dt": "Workflow", "filters": [["document_type", "=", "Delivery Trip"]]},
@@ -58,7 +59,21 @@ scheduler_events = {
 # ------------------------------
 # boot_session = boot_session
 
-# After Install / Migrate
+# Run after every bench migrate to ensure child table columns exist
+# and dashboard charts are created
+# ------------------------------
+after_migrate = [
+	"msme_logistics.logistics.setup.after_migrate",
+	"msme_logistics.patches.fix_child_table_parent_columns.execute",
+	"msme_logistics.patches.create_dashboard_charts.execute",
+]
+
+# Run on first HTTP request to fix child table parent columns
+# ------------------------------
+# before_request is the most reliable hook because frappe.db is always connected
+# during HTTP requests. The cache flag prevents re-running on every request.
+before_request = ["msme_logistics.patches.fix_child_table_parent_columns.try_fix_once"]
+
+# After Install
 # ------------------------------
 after_install = "msme_logistics.logistics.setup.after_install"
-after_migrate = "msme_logistics.logistics.setup.after_migrate"
