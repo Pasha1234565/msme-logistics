@@ -83,8 +83,7 @@
    "fieldname": "delivery_stops",
    "fieldtype": "Table",
    "label": "Delivery Stops",
-   "options": "Delivery Stop",
-   "reqd": 1
+   "options": "Delivery Stop"
   },
   {
    "fieldname": "section_break_delivery_notes",
