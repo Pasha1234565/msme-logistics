@@ -64,7 +64,7 @@ def build_workspace_content():
 		{"type": "number_card", "data": {"number_card_name": "Avg Cost Per Stop", "label": "Avg Cost Per Stop"}},
 		{"type": "header", "data": {"text": "Analytics"}},
 		{"type": "chart", "data": {"chart_name": "SLA Compliance", "label": "SLA Compliance by Transporter", "chart_type": "Report", "report_name": "SLA Compliance by Transporter", "width": "Half"}},
-		{"type": "chart", "data": {"chart_name": "Cost Per Delivery Trend", "label": "Cost Per Delivery Trend", "chart_type": "Report", "report_name": "Cost Per Delivery by Transporter", "width": "Half"}},
+		{"type": "chart", "data": {"label": "Cost Per Delivery Trend", "chart_type": "Report", "report_name": "Cost Per Delivery by Transporter", "width": "Half"}},
 		{"type": "card", "data": {"card_name": "Transactions", "col": 4, "items": [
 			{"type": "DocType", "link_to": "Delivery Trip", "label": "Delivery Trip", "description": "Create and manage delivery trips", "onboard": 1},
 			{"type": "DocType", "link_to": "Trip Cost Reconciliation", "label": "Trip Cost Reconciliation", "description": "Reconcile trip costs per delivery", "onboard": 1}
@@ -145,14 +145,7 @@ def add_charts(workspace):
 			"is_public": 1,
 			"width": "Half",
 		},
-		{
-			"chart_name": "Cost Per Delivery Trend",
-			"label": "Cost Per Delivery Trend",
-			"chart_type": "Report",
-			"report_name": "Cost Per Delivery by Transporter",
-			"is_public": 1,
-			"width": "Half",
-		},
+
 	]
 	for c in charts:
 		workspace.append("charts", c)

@@ -23,12 +23,18 @@ def execute():
 		workspace_name="MSME",
 	)
 
-	create_chart(
-		chart_name="Cost Per Delivery Trend",
-		chart_type="Report",
-		visual_type="Line",
-		report_name="Cost Per Delivery by Transporter",
-		workspace_name="MSME",
+	# NOTE: Cost Per Delivery Trend is NOT created as a Dashboard Chart
+	# because Dashboard Chart's `get` API doesn't handle Report-type charts
+	# properly (falls through to get_chart_config which is for aggregate charts).
+	# The workspace renders this report's chart directly via report_name.
+	# We clean up any stale chart record that might exist:
+	frappe.db.sql(
+		"DELETE FROM `tabDashboard Chart` WHERE `name` = 'Cost Per Delivery Trend'"
+	)
+	frappe.db.sql(
+		"""DELETE FROM `tabWorkspace Chart`
+		   WHERE `parent` = 'MSME' AND `parentfield` = 'charts'
+		   AND `chart_name` = 'Cost Per Delivery Trend'"""
 	)
 
 	print("🎯 Dashboard charts setup complete! Refresh the workspace to see them.")
