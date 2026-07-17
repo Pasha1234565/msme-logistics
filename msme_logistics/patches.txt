@@ -9,3 +9,4 @@ msme_logistics.patches.fix_child_table_parent_columns.execute
 msme_logistics.patches.create_dashboard_charts.execute
 msme_logistics.patches.add_demo_data.execute
 msme_logistics.patches.add_address_custom_fields.execute
+msme_logistics.patches.insert_demo_data.execute
