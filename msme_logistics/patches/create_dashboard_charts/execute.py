@@ -17,14 +17,16 @@ def execute():
 	"""
 	create_chart(
 		chart_name="SLA Compliance",
-		chart_type="Bar",
+		chart_type="Report",
+		visual_type="Bar",
 		report_name="SLA Compliance by Transporter",
 		workspace_name="MSME",
 	)
 
 	create_chart(
 		chart_name="Cost Per Delivery Trend",
-		chart_type="Line",
+		chart_type="Report",
+		visual_type="Line",
 		report_name="Cost Per Delivery by Transporter",
 		workspace_name="MSME",
 	)
@@ -32,7 +34,7 @@ def execute():
 	print("🎯 Dashboard charts setup complete! Refresh the workspace to see them.")
 
 
-def create_chart(chart_name, chart_type, report_name, workspace_name):
+def create_chart(chart_name, chart_type, visual_type, report_name, workspace_name):
 	"""Create or update a Dashboard Chart and link it to a workspace."""
 	# STEP 1: Create/fix the Dashboard Chart record
 	try:
@@ -47,26 +49,32 @@ def create_chart(chart_name, chart_type, report_name, workspace_name):
 		frappe.db.sql(
 			"""
 			INSERT INTO `tabDashboard Chart`
-			(`name`, `chart_name`, `chart_type`,
-			 `report_name`, `module`, `is_public`, `is_standard`,
+			(`name`, `chart_name`, `chart_type`, `type`,
+			 `report_name`, `use_report_chart`, `module`, `is_public`, `is_standard`,
 			 `filters_json`, `timeseries`,
+			 `timespan`, `time_interval`,
 			 `creation`, `modified`, `modified_by`, `owner`, `docstatus`)
 			VALUES
-			(%(name)s, %(chart_name)s, %(chart_type)s,
-			 %(report_name)s, %(module)s, %(is_public)s, %(is_standard)s,
+			(%(name)s, %(chart_name)s, %(chart_type)s, %(type)s,
+			 %(report_name)s, %(use_report_chart)s, %(module)s, %(is_public)s, %(is_standard)s,
 			 %(filters_json)s, %(timeseries)s,
+			 %(timespan)s, %(time_interval)s,
 			 %(creation)s, %(modified)s, %(owner)s, %(owner)s, 0)
 		""",
 			{
 				"name": chart_name,
 				"chart_name": chart_name,
 				"chart_type": chart_type,
+				"type": visual_type,
+				"use_report_chart": 1,
 				"report_name": report_name,
 				"module": "Logistics",
 				"is_public": 1,
 				"is_standard": 0,
 				"filters_json": "{}",
 				"timeseries": 0,
+				"timespan": "Last Month",
+				"time_interval": "Monthly",
 				"creation": now(),
 				"modified": now(),
 				"owner": "Administrator",
