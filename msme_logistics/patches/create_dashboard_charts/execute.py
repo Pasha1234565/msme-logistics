@@ -37,6 +37,16 @@ def execute():
 		   AND `chart_name` = 'Cost Per Delivery Trend'"""
 	)
 
+	# Also update the workspace content field to use report_name directly
+	# (existing workspaces have a stale chart_name reference)
+	frappe.db.sql(
+		"""UPDATE `tabWorkspace`
+		   SET `content` = REPLACE(`content`,
+		       '{\\"chart_name\\":\\"Cost Per Delivery Trend\\",\\"col\\":6}',
+		       '{\\"report_name\\":\\"Cost Per Delivery by Transporter\\",\\"chart_type\\":\\"Report\\",\\"col\\":6}')
+		   WHERE `name` = 'MSME'"""
+	)
+
 	print("🎯 Dashboard charts setup complete! Refresh the workspace to see them.")
 
 
