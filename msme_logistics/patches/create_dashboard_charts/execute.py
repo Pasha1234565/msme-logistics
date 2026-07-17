@@ -42,10 +42,11 @@ def execute():
 	frappe.db.sql(
 		"""UPDATE `tabWorkspace`
 		   SET `content` = REPLACE(`content`,
-		       '{\\"chart_name\\":\\"Cost Per Delivery Trend\\",\\"col\\":6}',
-		       '{\\"report_name\\":\\"Cost Per Delivery by Transporter\\",\\"chart_type\\":\\"Report\\",\\"col\\":6}')
+		       '{"chart_name":"Cost Per Delivery Trend","col":6}',
+		       '{"report_name":"Cost Per Delivery by Transporter","chart_type":"Report","col":6}')
 		   WHERE `name` = 'MSME'"""
 	)
+	frappe.db.commit()
 
 	print("🎯 Dashboard charts setup complete! Refresh the workspace to see them.")
 
