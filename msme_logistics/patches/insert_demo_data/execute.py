@@ -16,7 +16,7 @@ def execute():
 
 	print("Inserting comprehensive demo data...")
 
-	# ── 1. Transporters ──────────────────────────────────────────────────
+	# ── 1. Transporters (skip if already exist from previous patches) ──
 	transporters = [
 		("FastTrack Logistics", "Active",   "info@fasttrack.in",     "+91-9876543210"),
 		("CityExpress Couriers", "Active",  "dispatch@cityexpress.com", "+91-9876543211"),
@@ -24,6 +24,9 @@ def execute():
 		("RapidMove Services", "Inactive",  "contact@rapidmove.com", "+91-9876543213"),
 	]
 	for name, status, email, phone in transporters:
+		if frappe.db.exists("Transporter", name):
+			print(f"  ℹ️  Transporter '{name}' already exists, skipping")
+			continue
 		frappe.db.sql("""
 			INSERT INTO `tabTransporter`
 				(name, transporter_name, status, email, phone,
@@ -31,6 +34,7 @@ def execute():
 			VALUES
 				(%s, %s, %s, %s, %s, %s, %s, 'Administrator', 'Administrator', 0, 0)
 		""", (name, name, status, email, phone, now, now))
+		print(f"  ✅ Created Transporter: {name}")
 
 		# Vehicle types
 		vtypes = {
@@ -65,7 +69,7 @@ def execute():
 			""", (frappe.generate_hash("", 10), name, idx, frm, to, now, now))
 
 	frappe.db.commit()
-	print("  ✅ Created 4 Transporters with vehicle types & service areas")
+	print("  ✅ Transporters ready (new + existing)")
 
 	# ── 2. Warehouse ─────────────────────────────────────────────────────
 	warehouse = frappe.db.get_value("Warehouse", {"is_group": 0, "disabled": 0}, "name")
