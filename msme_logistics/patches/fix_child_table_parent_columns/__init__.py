@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import frappe
+from .execute import execute
 
 
 def try_fix_once():
@@ -14,19 +15,6 @@ def try_fix_once():
 
 	fix_all_child_tables()
 	frappe.cache().set_value("logistics_child_tables_fixed", True)
-
-
-def execute():
-	"""Add parent/parenttype/parentfield columns to all Logistics child tables.
-
-	Frappe's schema sync sometimes fails to create these columns for child
-	tables, causing (1054, "Unknown column 'parent' in WHERE") errors when
-	child table records are queried or filtered by parent.
-
-	This patch is designed to NEVER crash — every ALTER TABLE is wrapped in
-	try/except and columns that already exist are silently skipped.
-	"""
-	fix_all_child_tables()
 
 
 def fix_all_child_tables():
