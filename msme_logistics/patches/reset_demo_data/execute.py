@@ -181,6 +181,7 @@ def _create_trips(transporters, warehouse):
 			})
 			doc.flags.ignore_permissions = True
 			doc.flags.ignore_links = True
+			doc.flags.ignore_validate = True
 			doc.insert()
 			trip_names.append(doc.name)
 			print(f"  ✅ {doc.name} ({t['trip_status']}) — 4 stops created")
@@ -196,13 +197,9 @@ def _create_trips(transporters, warehouse):
 def _create_reconciliations(trip_names):
 	"""Create Trip Cost Reconciliation for each completed trip."""
 	for name in trip_names:
-		trip = frappe.db.get_value("Delivery Trip", name, "trip_status", as_dict=True)
-		if not trip or trip != "Completed":
+		trip_status = frappe.db.get_value("Delivery Trip", name, "trip_status")
+		if trip_status != "Completed":
 			continue
-
-		stop_count = frappe.db.count("Delivery Stop", {
-			"parenttype": "Delivery Trip", "parent": name,
-		})
 		try:
 			doc = frappe.get_doc({
 				"doctype": "Trip Cost Reconciliation",

@@ -236,6 +236,7 @@ def insert_demo_data():
 			})
 			doc.flags.ignore_permissions = True
 			doc.flags.ignore_links = True
+			doc.flags.ignore_validate = True
 			doc.insert()
 			print(f"✅ Created Transporter: {t['transporter_name']}")
 		except Exception as e:
@@ -294,6 +295,7 @@ def insert_demo_data():
 			})
 			doc.flags.ignore_permissions = True
 			doc.flags.ignore_links = True
+			doc.flags.ignore_validate = True
 			doc.insert()
 			print(f"✅ Created Delivery Trip: {doc.name} ({t['trip_status']})")
 		except Exception as e:
