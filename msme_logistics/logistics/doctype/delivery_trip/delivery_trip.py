@@ -5,6 +5,15 @@ from frappe.model.document import Document
 from frappe.utils import now_datetime, get_url
 
 
+def _generate_tracking_id():
+	"""Generate a unique tracking ID in format TRK-XXXXXXXX using frappe built-ins."""
+	for _ in range(100):
+		tid = "TRK-" + frappe.generate_hash(length=8).upper()
+		if not frappe.db.exists("Delivery Stop", {"tracking_id": tid}):
+			return tid
+	return "TRK-" + frappe.generate_hash(length=8).upper()
+
+
 class DeliveryTrip(Document):
 	def validate(self):
 		self.validate_delivery_stops()
@@ -102,6 +111,10 @@ class DeliveryTrip(Document):
 			# First save — all stops are new
 			if self.get("delivery_stops"):
 				for stop in self.delivery_stops:
+					# Generate tracking ID if missing (before_insert may not fire for child rows)
+					if not stop.tracking_id:
+						stop.tracking_id = _generate_tracking_id()
+						frappe.db.set_value("Delivery Stop", stop.name, "tracking_id", stop.tracking_id, update_modified=False)
 					if stop.tracking_id:
 						self._notify_tracking_id(stop, target_user)
 					# Log initial status
@@ -118,7 +131,10 @@ class DeliveryTrip(Document):
 			for stop in self.delivery_stops:
 				prev = prev_status.get(stop.sequence_no)
 				if prev is None:
-					# New stop added — notify tracking ID
+					# New stop added — generate tracking ID and notify
+					if not stop.tracking_id:
+						stop.tracking_id = _generate_tracking_id()
+						frappe.db.set_value("Delivery Stop", stop.name, "tracking_id", stop.tracking_id, update_modified=False)
 					if stop.tracking_id:
 						self._notify_tracking_id(stop, target_user)
 					# Log initial status for newly added stops
