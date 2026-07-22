@@ -5,9 +5,6 @@ from frappe.model.document import Document
 from frappe.utils import now_datetime, get_url
 
 
-from msme_logistics.logistics.doctype.delivery_stop.delivery_stop import _generate_tracking_id
-
-
 class DeliveryTrip(Document):
 	def validate(self):
 		self.validate_delivery_stops()
@@ -105,14 +102,8 @@ class DeliveryTrip(Document):
 			# First save — all stops are new
 			if self.get("delivery_stops"):
 				for stop in self.delivery_stops:
-					# Generate tracking ID if missing (before_insert may not fire for child rows)
-					if not stop.tracking_id:
-						stop.tracking_id = _generate_tracking_id()
-						frappe.db.set_value("Delivery Stop", stop.name, "tracking_id", stop.tracking_id, update_modified=False)
 					if stop.tracking_id:
 						self._notify_tracking_id(stop, target_user)
-					# Log initial status
-					self._log_status_change(stop)
 			return
 
 		# Build lookup of previous stop statuses by sequence_no
@@ -125,17 +116,15 @@ class DeliveryTrip(Document):
 			for stop in self.delivery_stops:
 				prev = prev_status.get(stop.sequence_no)
 				if prev is None:
-					# New stop added — generate tracking ID and notify
-					if not stop.tracking_id:
-						stop.tracking_id = _generate_tracking_id()
-						frappe.db.set_value("Delivery Stop", stop.name, "tracking_id", stop.tracking_id, update_modified=False)
+					# New stop added — notify tracking ID
 					if stop.tracking_id:
 						self._notify_tracking_id(stop, target_user)
-					# Log initial status for newly added stops
-					self._log_status_change(stop)
 				elif prev != stop.status:
 					# Log the status change
 					self._log_status_change(stop)
+					# Notify on failed deliveries
+					if stop.status == "Failed":
+						self.notify_delivery_failed(stop)
 
 	def _log_status_change(self, stop):
 		"""Append a timestamped entry to Delivery Status Log for this stop."""
@@ -165,6 +154,27 @@ class DeliveryTrip(Document):
 			stop.sequence_no,
 			stop.customer,
 			tracking_link,
+		)
+		notification.document_type = "Delivery Trip"
+		notification.document_name = self.name
+		notification.insert(ignore_permissions=True)
+
+	def notify_delivery_failed(self, stop):
+		"""Create System Notification for failed delivery."""
+		target_user = self._get_dispatch_user()
+
+		notification = frappe.new_doc("Notification Log")
+		notification.for_user = target_user
+		notification.title = frappe._("Delivery Failed")
+		notification.subject = frappe._(
+			"Delivery failed at stop #{0}: {1} (Customer: {2}). "
+			"Trip: {3}, Transporter: {4}"
+		).format(
+			stop.sequence_no,
+			stop.address or "N/A",
+			stop.customer,
+			self.name,
+			self.transporter,
 		)
 		notification.document_type = "Delivery Trip"
 		notification.document_name = self.name

@@ -85,27 +85,19 @@ def create_msme_workspace():
 	"""Create MSME workspace if it doesn't exist."""
 	workspace_name = "MSME"
 
+	if frappe.db.exists("Workspace", workspace_name):
+		return
+
 	try:
-		if frappe.db.exists("Workspace", workspace_name):
-			workspace = frappe.get_doc("Workspace", workspace_name)
-			workspace.flags.ignore_permissions = True
-			workspace.flags.ignore_links = True
-			# Clear existing shortcuts/charts/cards to rebuild
-			workspace.shortcuts = []
-			workspace.number_cards = []
-			workspace.charts = []
-			workspace.content = json.dumps([])
-			workspace.links = []
-		else:
-			workspace = frappe.new_doc("Workspace")
-			workspace.name = workspace_name
-			workspace.title = workspace_name
-			workspace.workspace_name = workspace_name
-			workspace.module = "Logistics"
-			workspace.is_standard = 1
-			workspace.public = 1
-			workspace.icon = "truck"
-			workspace.label = workspace_name
+		workspace = frappe.new_doc("Workspace")
+		workspace.name = workspace_name
+		workspace.title = workspace_name
+		workspace.workspace_name = workspace_name
+		workspace.label = workspace_name
+		workspace.module = "Logistics"
+		workspace.is_standard = 1
+		workspace.public = 1
+		workspace.icon = "truck"
 
 		# Build content layout
 		content = [
@@ -117,7 +109,7 @@ def create_msme_workspace():
 			{"type": "shortcut", "data": {"shortcut_name": "Failed Deliveries", "type": "Report", "link_to": "Failed Delivery Rate by Area", "icon": "warning", "onboard": 1}},
 			{"type": "header", "data": {"text": "Key Metrics"}},
 			{"type": "number_card", "data": {"number_card_name": "Trips In Transit Today", "label": "Trips In Transit Today"}},
-			{"type": "number_card", "data": {"number_card_name": "Deliveries Completed Today", "label": "Deliveries Completed Today"}},
+			{"type": "number_card", "data": {"number_card_name": "Failed Deliveries This Week", "label": "Failed Deliveries This Week"}},
 			{"type": "number_card", "data": {"number_card_name": "Avg Cost Per Stop", "label": "Avg Cost Per Stop"}},
 			{"type": "header", "data": {"text": "Analytics"}},
 			{"type": "chart", "data": {"chart_name": "SLA Compliance", "label": "SLA Compliance by Transporter", "chart_type": "Report", "report_name": "SLA Compliance by Transporter", "width": "Half"}},
@@ -150,7 +142,7 @@ def create_msme_workspace():
 		# Add number cards
 		for c in [
 			{"number_card_name": "Trips In Transit Today", "label": "Trips In Transit Today", "type": "Document Type", "document_type": "Delivery Trip", "function": "Count", "filter_operator": "=", "filter_field": "trip_status", "filter_value": "In Transit", "color": "#2490ef", "show_trend": 1},
-			{"number_card_name": "Deliveries Completed Today", "label": "Deliveries Completed Today", "type": "Document Type", "document_type": "Delivery Stop", "function": "Count", "filter_operator": "=", "filter_field": "status", "filter_value": "Delivered", "color": "#28a745", "show_trend": 1},
+			{"number_card_name": "Failed Deliveries This Week", "label": "Failed Deliveries This Week", "type": "Document Type", "document_type": "Delivery Stop", "function": "Count", "filter_operator": "=", "filter_field": "status", "filter_value": "Failed", "color": "#ff6b6b", "show_trend": 1},
 			{"number_card_name": "Avg Cost Per Stop", "label": "Avg Cost Per Stop", "type": "Document Type", "document_type": "Trip Cost Reconciliation", "function": "Average", "aggregate_function_based_on": "cost_per_stop", "color": "#28a745"},
 		]:
 			workspace.append("number_cards", c)
@@ -164,7 +156,7 @@ def create_msme_workspace():
 
 		workspace.flags.ignore_permissions = True
 		workspace.flags.ignore_links = True
-		workspace.save()
+		workspace.insert()
 		frappe.db.commit()
 		print(f"✅ Created workspace: {workspace_name}")
 	except Exception as e:
@@ -180,26 +172,6 @@ def _generate_tracking_id():
 		if not frappe.db.exists("Delivery Stop", {"tracking_id": tid}):
 			return tid
 	return "TRK-" + "".join(secrets.choice(chars) for _ in range(8))
-
-
-def delete_demo_data():
-	"""Delete existing demo data (trips, reconciliations, stops, status logs, transporters).
-
-	Run from bench console:
-	  bench execute msme_logistics.logistics.setup.delete_demo_data
-	"""
-	print("🗑️  Deleting existing demo data...")
-	for doctype in ["Delivery Status Log", "Delivery Stop", "Delivery Trip Delivery Note", "Delivery Trip", "Trip Cost Reconciliation", "Transporter"]:
-		names = frappe.get_all(doctype, pluck="name")
-		if names:
-			for name in names:
-				try:
-					frappe.delete_doc(doctype, name, ignore_permissions=True, force=True)
-				except Exception:
-					pass
-			print(f"  ✅ Deleted {len(names)} {doctype} records")
-		frappe.db.commit()
-	print("✅ Demo data deleted. Run `bench execute msme_logistics.logistics.setup.insert_demo_data` to create fresh data.")
 
 
 def insert_demo_data():
@@ -236,7 +208,6 @@ def insert_demo_data():
 			})
 			doc.flags.ignore_permissions = True
 			doc.flags.ignore_links = True
-			doc.flags.ignore_validate = True
 			doc.insert()
 			print(f"✅ Created Transporter: {t['transporter_name']}")
 		except Exception as e:
@@ -251,10 +222,25 @@ def insert_demo_data():
 
 	warehouse = frappe.get_all("Warehouse", {"is_group": 0, "disabled": 0}, pluck="name")
 	warehouse = warehouse[0] if warehouse else ""
-	_ts = lambda: _generate_tracking_id()
-	_arrival = add_days(now_datetime(), -3).strftime("%Y-%m-%d %H:%M:%S")
 
-	trips_config = [
+	# Helper to generate tracking IDs for demo stops
+	def make_stops():
+		return [
+			{
+				"sequence_no": 1, "customer": "Customer",
+				"address": "123 Main St, Delhi", "status": "Delivered",
+				"delivery_window_start": "09:00:00", "delivery_window_end": "11:00:00",
+				"tracking_id": _generate_tracking_id(),
+			},
+			{
+				"sequence_no": 2, "customer": "Customer",
+				"address": "456 Park Ave, Delhi", "status": "Pending",
+				"delivery_window_start": "11:30:00", "delivery_window_end": "13:00:00",
+				"tracking_id": _generate_tracking_id(),
+			},
+		]
+
+	trips_data = [
 		{
 			"transporter": transporter_names[0], "driver_name": "Rajesh Kumar",
 			"vehicle_no": "DL-01-AB-1234", "trip_status": "In Transit",
@@ -267,7 +253,7 @@ def insert_demo_data():
 		},
 	]
 
-	for t in trips_config:
+	for t in trips_data:
 		try:
 			doc = frappe.get_doc({
 				"doctype": "Delivery Trip",
@@ -278,57 +264,15 @@ def insert_demo_data():
 				"trip_status": t["trip_status"],
 				"trip_date": t["trip_date"],
 				"planned_dispatch_date": t["planned_dispatch_date"],
-				"delivery_stops": [
-					{"sequence_no": 1, "customer": "Customer", "address": "123 Main St, Delhi",
-					 "status": "Shipped", "delivery_window_start": "09:00:00",
-					 "delivery_window_end": "11:00:00", "tracking_id": _ts()},
-					{"sequence_no": 2, "customer": "Customer", "address": "456 Park Ave, Delhi",
-					 "status": "In Transit", "delivery_window_start": "11:30:00",
-					 "delivery_window_end": "13:00:00", "tracking_id": _ts()},
-					{"sequence_no": 3, "customer": "Customer", "address": "789 Lake Rd, Delhi",
-					 "status": "Out for Delivery", "delivery_window_start": "14:00:00",
-					 "delivery_window_end": "16:00:00", "tracking_id": _ts()},
-					{"sequence_no": 4, "customer": "Customer", "address": "321 Hill St, Delhi",
-					 "status": "Delivered", "delivery_window_start": "16:30:00",
-					 "delivery_window_end": "18:00:00",
-					 "actual_arrival_time": _arrival, "tracking_id": _ts()},
-				],
+				"delivery_stops": make_stops(),
 			})
 			doc.flags.ignore_permissions = True
 			doc.flags.ignore_links = True
 			doc.flags.ignore_validate = True
 			doc.insert()
-			print(f"✅ Created Delivery Trip: {doc.name} ({t['trip_status']})")
+			print(f"✅ Created Delivery Trip: {doc.name}")
 		except Exception as e:
 			print(f"⚠️ Skipped trip: {e}")
-
-	frappe.db.commit()
-
-	# ── Create Trip Cost Reconciliation records for completed trips ──
-	completed_trips = frappe.db.sql(
-		"""SELECT name, transporter FROM `tabDelivery Trip`
-		 WHERE trip_status = 'Completed' LIMIT 5""",
-		as_dict=True,
-	)
-	for t in completed_trips:
-		stop_count = frappe.db.count("Delivery Stop", {"parent": t.name, "parenttype": "Delivery Trip"})
-		cost_per_stop = round(150.0 + (stop_count * 25.0), 2)
-		try:
-			recon = frappe.get_doc({
-				"doctype": "Trip Cost Reconciliation",
-				"delivery_trip": t.name,
-				"reconciliation_date": today(),
-				"fuel_cost": 800,
-				"transporter_payout": 1200,
-				"total_stops": stop_count,
-				"cost_per_stop": cost_per_stop,
-			})
-			recon.flags.ignore_permissions = True
-			recon.flags.ignore_links = True
-			recon.insert()
-			print(f"✅ Created Trip Cost Reconciliation for {t.name}")
-		except Exception as e:
-			print(f"⚠️ Skipped reconciliation for {t.name}: {e}")
 
 	frappe.db.commit()
 	print("✅ Demo data inserted successfully!")

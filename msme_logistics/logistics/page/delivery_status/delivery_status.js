@@ -45,10 +45,9 @@ frappe.pages['delivery-status'].on_page_load = function (wrapper) {
 			},
 			error: function (err) {
 				$spinner.addClass('hide');
-				// Show the actual server error — don't mask it with a generic message
-				var msg = (err && (err.message || err._error_message || JSON.stringify(err)))
-					|| __('No order found for this tracking ID. Please check and try again.');
-				console.error('Tracking API error:', err);
+				var msg =
+					(err && (err.message || err._error_message)) ||
+					__('No order found for this tracking ID. Please check and try again.');
 				show_error(msg);
 			},
 		});
@@ -59,6 +58,10 @@ frappe.pages['delivery-status'].on_page_load = function (wrapper) {
 
 		// ── Stepper ──
 		render_stepper(data.status);
+
+		// ── Badges ──
+		page.body.find('#ds-failed-badge').toggle(data.status === 'Failed');
+		page.body.find('#ds-rescheduled-badge').toggle(data.status === 'Rescheduled');
 
 		// ── Info cards ──
 		page.body.find('#ds-location').text(data.current_location || '—');
@@ -75,28 +78,37 @@ frappe.pages['delivery-status'].on_page_load = function (wrapper) {
 		$steps.removeClass('active completed failed');
 		$connectors.removeClass('completed');
 
-		// ── Status to stepper step mapping ──
-		// Statuses map directly to step indices: Shipped(0) → In Transit(1) → Out for Delivery(2) → Delivered(3)
-		var stepOrder = ['Shipped', 'In Transit', 'Out for Delivery', 'Delivered'];
-		var stepKeys = ['shipped', 'in_transit', 'out_for_delivery', 'delivered'];
-
-		// Find index in the step order
-		var idx = stepOrder.indexOf(status);
-		if (idx < 0) idx = 0; // Unknown → treat as 'Shipped'
-
-		// Steps before idx = completed, step at idx = completed if last step else active
-		for (var i = 0; i < stepKeys.length; i++) {
-			if (i < idx) {
-				set_step(stepKeys[i], 'completed');
-				if (i < idx && i < stepKeys.length - 1) set_connector(i, true);
-			} else if (i === idx) {
-				// Last step (Delivered) shows as completed, others show as active
-				var cls = (idx === stepKeys.length - 1) ? 'completed' : 'active';
-				set_step(stepKeys[i], cls);
-			} else {
-				break;
-			}
+		if (status === 'Failed') {
+			set_step('shipped', 'completed');
+			set_connector(0, true);
+			set_step('in_transit', 'completed');
+			set_connector(1, true);
+			set_step('out_for_delivery', 'failed');
+			return;
 		}
+
+		if (status === 'Rescheduled') {
+			set_step('shipped', 'completed');
+			set_connector(0, true);
+			set_step('in_transit', 'completed');
+			set_connector(1, true);
+			set_step('out_for_delivery', 'active');
+			return;
+		}
+
+		if (status === 'Delivered') {
+			set_step('shipped', 'completed');
+			set_connector(0, true);
+			set_step('in_transit', 'completed');
+			set_connector(1, true);
+			set_step('out_for_delivery', 'completed');
+			set_connector(2, true);
+			set_step('delivered', 'completed');
+			return;
+		}
+
+		// Pending — Shipped is active
+		set_step('shipped', 'active');
 	}
 
 	function set_step(key, cls) {
@@ -260,7 +272,16 @@ function get_page_html() {
 					<div class="ds-step-label">${__('Delivered')}</div>
 				</div>
 			</div>
-
+			<div id="ds-failed-badge" class="text-center mt-3 hide">
+				<span class="badge badge-danger" style="font-size: 0.95rem; padding: 0.4rem 1rem; border-radius: 20px;">
+					⚠ ${__('Delivery Failed')}
+				</span>
+			</div>
+			<div id="ds-rescheduled-badge" class="text-center mt-3 hide">
+				<span class="badge badge-warning" style="font-size: 0.95rem; padding: 0.4rem 1rem; border-radius: 20px;">
+					🔄 ${__('Rescheduled')}
+				</span>
+			</div>
 		</div>
 
 		<!-- Info Cards -->
@@ -424,10 +445,11 @@ function get_page_html() {
 	flex-shrink: 0;
 }
 
-.ds-timeline-dot.status-shipped,
-.ds-timeline-dot.status-in-transit,
-.ds-timeline-dot.status-out-for-delivery { background: #2490ef; }
 .ds-timeline-dot.status-delivered { background: #28a745; }
+.ds-timeline-dot.status-failed { background: #dc3545; }
+.ds-timeline-dot.status-rescheduled { background: #ffc107; }
+.ds-timeline-dot.status-shipped,
+.ds-timeline-dot.status-out-for-delivery { background: #2490ef; }
 
 .ds-timeline-line {
 	width: 2px;

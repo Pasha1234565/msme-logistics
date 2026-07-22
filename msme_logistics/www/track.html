@@ -66,7 +66,18 @@
 				{% endif %}
 				{% endfor %}
 			</div>
-
+			<!-- Failed Badge (shown when status is Failed) -->
+			<div id="failed-badge" class="text-center mt-3" style="display: none;">
+				<span class="badge badge-danger" style="font-size: 0.95rem; padding: 0.4rem 1rem; border-radius: 20px;">
+					⚠ Delivery Failed
+				</span>
+			</div>
+			<!-- Rescheduled Badge -->
+			<div id="rescheduled-badge" class="text-center mt-3" style="display: none;">
+				<span class="badge badge-warning" style="font-size: 0.95rem; padding: 0.4rem 1rem; border-radius: 20px;">
+					🔄 Rescheduled
+				</span>
+			</div>
 		</div>
 
 		<!-- Current Location & ETA -->
@@ -241,10 +252,11 @@
 	flex-shrink: 0;
 }
 
-.timeline-dot.status-shipped,
-.timeline-dot.status-in-transit,
-.timeline-dot.status-out-for-delivery { background: #2490ef; }
 .timeline-dot.status-delivered { background: #28a745; }
+.timeline-dot.status-failed { background: #dc3545; }
+.timeline-dot.status-rescheduled { background: #ffc107; }
+.timeline-dot.status-shipped,
+.timeline-dot.status-out-for-delivery { background: #2490ef; }
 
 .timeline-line {
 	width: 2px;
@@ -342,8 +354,7 @@ frappe.ready(function() {
 			},
 			error: function(err) {
 				spinner.style.display = 'none';
-				console.error('Tracking API error:', err);
-				var msg = (err && (err.message || err._error_message || JSON.stringify(err)))
+				var msg = (err && (err.message || err._error_message))
 					|| 'No order found for this tracking ID. Please check and try again.';
 				showError(msg);
 			}
@@ -355,6 +366,10 @@ frappe.ready(function() {
 
 		// ── Stepper ──
 		renderStepper(data.status);
+
+		// ── Failed / Rescheduled badge ──
+		document.getElementById('failed-badge').style.display = data.status === 'Failed' ? 'block' : 'none';
+		document.getElementById('rescheduled-badge').style.display = data.status === 'Rescheduled' ? 'block' : 'none';
 
 		// ── Info cards ──
 		document.getElementById('current-location').textContent = data.current_location || '—';
@@ -372,30 +387,40 @@ frappe.ready(function() {
 		steps.forEach(s => { s.classList.remove('active', 'completed', 'failed'); });
 		connectors.forEach(c => c.classList.remove('completed'));
 
-		// ── Status to stepper step mapping ──
-		// Complete all steps up to (but not including) `status`, then activate `status`
-		// ── Status to stepper step mapping ──
-		// Statuses map directly to step indices: Shipped(0) → In Transit(1) → Out for Delivery(2) → Delivered(3)
-		var stepOrder = ['Shipped', 'In Transit', 'Out for Delivery', 'Delivered'];
-		var stepKeys = ['shipped', 'in_transit', 'out_for_delivery', 'delivered'];
-
-		// Find index in the step order
-		var idx = stepOrder.indexOf(status);
-		if (idx < 0) idx = 0; // Unknown → treat as 'Shipped'
-
-		// Steps before idx = completed, step at idx = completed if last step else active
-		for (var i = 0; i < stepKeys.length; i++) {
-			if (i < idx) {
-				setStep(stepKeys[i], 'completed');
-				if (i < idx && i < stepKeys.length - 1) setConnector(i, true);
-			} else if (i === idx) {
-				// Last step (Delivered) shows as completed, others show as active
-				var cls = (idx === stepKeys.length - 1) ? 'completed' : 'active';
-				setStep(stepKeys[i], cls);
-			} else {
-				break;
-			}
+		if (status === 'Failed') {
+			// Mark all before "shipped" as completed, shipped as failed
+			// Actually, just mark the last active step as failed
+			setStep('shipped', 'completed');
+			setConnector(0, true);
+			setStep('in_transit', 'completed');
+			setConnector(1, true);
+			setStep('out_for_delivery', 'failed');
+			return;
 		}
+
+		if (status === 'Rescheduled') {
+			// Show as indeterminate — keep at current progress
+			setStep('shipped', 'completed');
+			setConnector(0, true);
+			setStep('in_transit', 'completed');
+			setConnector(1, true);
+			setStep('out_for_delivery', 'active');
+			return;
+		}
+
+		if (status === 'Delivered') {
+			setStep('shipped', 'completed');
+			setConnector(0, true);
+			setStep('in_transit', 'completed');
+			setConnector(1, true);
+			setStep('out_for_delivery', 'completed');
+			setConnector(2, true);
+			setStep('delivered', 'completed');
+			return;
+		}
+
+		// Pending — Shipped is active
+		setStep('shipped', 'active');
 	}
 
 	function setStep(key, cls) {

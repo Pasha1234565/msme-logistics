@@ -15,7 +15,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Shipped\nIn Transit\nOut for Delivery\nDelivered",
+   "options": "Pending\nDelivered\nFailed\nRescheduled\nShipped\nOut for Delivery",
    "reqd": 1,
    "in_list_view": 1,
    "columns": 3
