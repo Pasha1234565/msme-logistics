@@ -5,13 +5,7 @@ from frappe.model.document import Document
 from frappe.utils import now_datetime, get_url
 
 
-def _generate_tracking_id():
-	"""Generate a unique tracking ID in format TRK-XXXXXXXX using frappe built-ins."""
-	for _ in range(100):
-		tid = "TRK-" + frappe.generate_hash(length=8).upper()
-		if not frappe.db.exists("Delivery Stop", {"tracking_id": tid}):
-			return tid
-	return "TRK-" + frappe.generate_hash(length=8).upper()
+from msme_logistics.logistics.doctype.delivery_stop.delivery_stop import _generate_tracking_id
 
 
 class DeliveryTrip(Document):
