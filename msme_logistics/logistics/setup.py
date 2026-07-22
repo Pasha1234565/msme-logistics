@@ -1,9 +1,6 @@
 from __future__ import unicode_literals
 
 import json
-import secrets
-import string
-
 import frappe
 from frappe.utils import now_datetime, today, add_days
 
@@ -11,74 +8,12 @@ from frappe.utils import now_datetime, today, add_days
 def after_install():
 	"""Run after app installation. Creates workspace and demo data."""
 	create_msme_workspace()
-	run_tracking_fixes()
 	insert_demo_data()
 
 
 def after_migrate():
-	"""Run after migration. Ensures workspace and tracking infrastructure exist."""
+	"""Run after migration. Ensures workspace exists."""
 	create_msme_workspace()
-	run_tracking_fixes()
-
-
-def run_tracking_fixes():
-	"""Ensure all tracking infrastructure is in place.
-
-	Runs on every migrate. Handles:
-	1. Adding missing child-table columns to Delivery Status Log
-	2. Backfilling tracking IDs on existing stops that lack them
-	3. Syncing the in_list_view field property
-	"""
-	# ── 1. Ensure Delivery Status Log has proper child-table columns ──
-	table_name = "tabDelivery Status Log"
-	required_columns = {
-		"parent": "VARCHAR(140) NULL",
-		"parenttype": "VARCHAR(140) NULL",
-		"parentfield": "VARCHAR(140) NULL",
-	}
-	try:
-		existing_cols = {
-			row[0]
-			for row in frappe.db.sql(
-				"SHOW COLUMNS FROM `{0}`".format(table_name)
-			)
-		}
-		for col, col_def in required_columns.items():
-			if col not in existing_cols:
-				frappe.db.sql(
-					"ALTER TABLE `{0}` ADD COLUMN `{1}` {2}".format(table_name, col, col_def)
-				)
-		frappe.db.commit()
-	except Exception:
-		pass  # Table may not exist yet on fresh installs — fine
-
-	# ── 2. Backfill tracking IDs on existing stops ──
-	chars = string.ascii_uppercase + string.digits
-	missing = frappe.db.sql(
-		"""SELECT name FROM `tabDelivery Stop`
-		 WHERE (tracking_id IS NULL OR tracking_id = '')
-		 AND parent IS NOT NULL AND parent != ''
-		 LIMIT 500""",
-		as_dict=True,
-	)
-
-	if missing:
-		for stop in missing:
-			for _ in range(100):
-				tid = "TRK-" + "".join(secrets.choice(chars) for _ in range(8))
-				if not frappe.db.exists("Delivery Stop", {"tracking_id": tid}):
-					break
-			frappe.db.set_value("Delivery Stop", stop.name, "tracking_id", tid, update_modified=False)
-		frappe.db.commit()
-		print("✅ Backfilled {0} stops with tracking IDs".format(len(missing)))
-
-	# ── 3. Sync in_list_view for tracking_id field ──
-	frappe.db.set_value(
-		"DocField",
-		{"parent": "Delivery Stop", "fieldname": "tracking_id"},
-		{"in_list_view": 1, "columns": 2},
-	)
-	frappe.db.commit()
 
 
 def create_msme_workspace():
@@ -164,18 +99,8 @@ def create_msme_workspace():
 		print(f"⚠️ Could not create workspace: {e}")
 
 
-def _generate_tracking_id():
-	"""Generate a unique tracking ID in format TRK-XXXXXXXX."""
-	chars = string.ascii_uppercase + string.digits
-	for _ in range(100):
-		tid = "TRK-" + "".join(secrets.choice(chars) for _ in range(8))
-		if not frappe.db.exists("Delivery Stop", {"tracking_id": tid}):
-			return tid
-	return "TRK-" + "".join(secrets.choice(chars) for _ in range(8))
-
-
 def insert_demo_data():
-	"""Insert demo transporters, trips, and reconciliations with tracking IDs."""
+	"""Insert demo transporters, trips, and reconciliations."""
 	if frappe.db.get_all("Transporter", limit=1):
 		print("ℹ️ Demo data already exists, skipping")
 		return
@@ -223,23 +148,6 @@ def insert_demo_data():
 	warehouse = frappe.get_all("Warehouse", {"is_group": 0, "disabled": 0}, pluck="name")
 	warehouse = warehouse[0] if warehouse else ""
 
-	# Helper to generate tracking IDs for demo stops
-	def make_stops():
-		return [
-			{
-				"sequence_no": 1, "customer": "Customer",
-				"address": "123 Main St, Delhi", "status": "Delivered",
-				"delivery_window_start": "09:00:00", "delivery_window_end": "11:00:00",
-				"tracking_id": _generate_tracking_id(),
-			},
-			{
-				"sequence_no": 2, "customer": "Customer",
-				"address": "456 Park Ave, Delhi", "status": "Pending",
-				"delivery_window_start": "11:30:00", "delivery_window_end": "13:00:00",
-				"tracking_id": _generate_tracking_id(),
-			},
-		]
-
 	trips_data = [
 		{
 			"transporter": transporter_names[0], "driver_name": "Rajesh Kumar",
@@ -264,7 +172,10 @@ def insert_demo_data():
 				"trip_status": t["trip_status"],
 				"trip_date": t["trip_date"],
 				"planned_dispatch_date": t["planned_dispatch_date"],
-				"delivery_stops": make_stops(),
+				"delivery_stops": [
+					{"sequence_no": 1, "customer": "Customer", "address": "123 Main St, Delhi", "status": "Delivered", "delivery_window_start": "09:00:00", "delivery_window_end": "11:00:00"},
+					{"sequence_no": 2, "customer": "Customer", "address": "456 Park Ave, Delhi", "status": "Pending", "delivery_window_start": "11:30:00", "delivery_window_end": "13:00:00"},
+				]
 			})
 			doc.flags.ignore_permissions = True
 			doc.flags.ignore_links = True
