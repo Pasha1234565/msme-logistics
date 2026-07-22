@@ -249,35 +249,10 @@ def insert_demo_data():
 		return
 
 	warehouse = frappe.get_all("Warehouse", {"is_group": 0, "disabled": 0}, pluck="name")
-	warehouse = warehouse[0] if warehouse else ""
+	warehouse = warehouse[0] if warehouse else ""	_ts = lambda: _generate_tracking_id()
+	_arrival = add_days(now_datetime(), -3).strftime("%Y-%m-%d %H:%M:%S")
 
-	# Helper to generate tracking IDs for demo stops
-	def make_stops():
-		return [				{"sequence_no": 1, "customer": "Customer",
-				"address": "123 Main St, Delhi", "status": "Shipped",
-				"delivery_window_start": "09:00:00", "delivery_window_end": "11:00:00",
-				"tracking_id": _generate_tracking_id(),
-			},
-			{
-				"sequence_no": 2, "customer": "Customer",
-				"address": "456 Park Ave, Delhi", "status": "In Transit",
-				"delivery_window_start": "11:30:00", "delivery_window_end": "13:00:00",
-				"tracking_id": _generate_tracking_id(),
-			},
-			{
-				"sequence_no": 3, "customer": "Customer",
-				"address": "789 Lake Rd, Delhi", "status": "Out for Delivery",
-				"delivery_window_start": "14:00:00", "delivery_window_end": "16:00:00",
-				"tracking_id": _generate_tracking_id(),
-			},				{"sequence_no": 4, "customer": "Customer",
-				"address": "321 Hill St, Delhi", "status": "Delivered",
-				"delivery_window_start": "16:30:00", "delivery_window_end": "18:00:00",
-				"actual_arrival_time": add_days(now_datetime(), -3).strftime("%Y-%m-%d %H:%M:%S"),
-				"tracking_id": _generate_tracking_id(),
-			},
-		]
-
-	trips_data = [
+	trips_config = [
 		{
 			"transporter": transporter_names[0], "driver_name": "Rajesh Kumar",
 			"vehicle_no": "DL-01-AB-1234", "trip_status": "In Transit",
@@ -290,7 +265,7 @@ def insert_demo_data():
 		},
 	]
 
-	for t in trips_data:
+	for t in trips_config:
 		try:
 			doc = frappe.get_doc({
 				"doctype": "Delivery Trip",
@@ -301,13 +276,26 @@ def insert_demo_data():
 				"trip_status": t["trip_status"],
 				"trip_date": t["trip_date"],
 				"planned_dispatch_date": t["planned_dispatch_date"],
-				"delivery_stops": make_stops(),
+				"delivery_stops": [
+					{"sequence_no": 1, "customer": "Customer", "address": "123 Main St, Delhi",
+					 "status": "Shipped", "delivery_window_start": "09:00:00",
+					 "delivery_window_end": "11:00:00", "tracking_id": _ts()},
+					{"sequence_no": 2, "customer": "Customer", "address": "456 Park Ave, Delhi",
+					 "status": "In Transit", "delivery_window_start": "11:30:00",
+					 "delivery_window_end": "13:00:00", "tracking_id": _ts()},
+					{"sequence_no": 3, "customer": "Customer", "address": "789 Lake Rd, Delhi",
+					 "status": "Out for Delivery", "delivery_window_start": "14:00:00",
+					 "delivery_window_end": "16:00:00", "tracking_id": _ts()},
+					{"sequence_no": 4, "customer": "Customer", "address": "321 Hill St, Delhi",
+					 "status": "Delivered", "delivery_window_start": "16:30:00",
+					 "delivery_window_end": "18:00:00",
+					 "actual_arrival_time": _arrival, "tracking_id": _ts()},
+				],
 			})
 			doc.flags.ignore_permissions = True
 			doc.flags.ignore_links = True
-			doc.flags.ignore_validate = True
 			doc.insert()
-			print(f"✅ Created Delivery Trip: {doc.name}")
+			print(f"✅ Created Delivery Trip: {doc.name} ({t['trip_status']})")
 		except Exception as e:
 			print(f"⚠️ Skipped trip: {e}")
 
