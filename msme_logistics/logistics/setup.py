@@ -322,17 +322,15 @@ def insert_demo_data():
 	for t in completed_trips:
 		stop_count = frappe.db.count("Delivery Stop", {"parent": t.name, "parenttype": "Delivery Trip"})
 		cost_per_stop = round(150.0 + (stop_count * 25.0), 2)
-		total_cost = round(cost_per_stop * stop_count, 2)
 		try:
 			recon = frappe.get_doc({
 				"doctype": "Trip Cost Reconciliation",
 				"delivery_trip": t.name,
-				"transporter": t.transporter,
+				"reconciliation_date": today(),
 				"fuel_cost": 800,
 				"transporter_payout": 1200,
 				"total_stops": stop_count,
 				"cost_per_stop": cost_per_stop,
-				"total_cost": total_cost,
 			})
 			recon.flags.ignore_permissions = True
 			recon.flags.ignore_links = True
