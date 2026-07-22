@@ -85,6 +85,18 @@
    "options": "Transporter Service Area"
   },
   {
+   "fieldname": "transit_config",
+   "fieldtype": "Section Break",
+   "label": "Transit Configuration"
+  },
+  {
+   "fieldname": "default_transit_days",
+   "fieldtype": "Float",
+   "label": "Default Transit Days",
+   "default": 1.0,
+   "description": "Average delivery transit time used to estimate delivery dates when not manually set"
+  },
+  {
    "fieldname": "analytics_section",
    "fieldtype": "Section Break",
    "label": "Analytics"

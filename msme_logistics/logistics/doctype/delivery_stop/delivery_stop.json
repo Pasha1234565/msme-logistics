@@ -61,6 +61,41 @@
    "columns": 2
   },
   {
+   "fieldname": "tracking_id",
+   "fieldtype": "Data",
+   "label": "Tracking ID",
+   "unique": 1,
+   "read_only": 1,
+   "no_copy": 1,
+   "search_index": 1,
+   "in_standard_filter": 1,
+   "description": "Customer-facing tracking ID (auto-generated, format TRK-XXXXXXXX)"
+  },
+  {
+   "fieldname": "estimated_delivery_date",
+   "fieldtype": "Date",
+   "label": "Estimated Delivery Date",
+   "description": "Expected delivery date shown to customer on tracking page"
+  },
+  {
+   "fieldname": "current_location_label",
+   "fieldtype": "Data",
+   "label": "Current Location",
+   "description": "Human-readable location shown to customer (e.g. \"Bengaluru Hub\")"
+  },
+  {
+   "fieldname": "customer_mobile",
+   "fieldtype": "Data",
+   "label": "Customer Mobile",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "customer_email",
+   "fieldtype": "Data",
+   "label": "Customer Email",
+   "options": "Email"
+  },
+  {
    "fieldname": "actual_arrival_time",
    "fieldtype": "Datetime",
    "label": "Actual Arrival Time",
@@ -89,6 +124,18 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "section_break_tracking",
+   "fieldtype": "Section Break",
+   "label": "Tracking History"
+  },
+  {
+   "fieldname": "delivery_status_logs",
+   "fieldtype": "Table",
+   "label": "Delivery Status Logs",
+   "options": "Delivery Status Log",
+   "read_only": 1
   }
  ],
  "permissions": [

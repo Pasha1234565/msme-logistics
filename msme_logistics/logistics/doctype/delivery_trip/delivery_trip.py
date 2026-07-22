@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import now_datetime
+from frappe.utils import now_datetime, get_url
 
 
 class DeliveryTrip(Document):
@@ -69,14 +69,41 @@ class DeliveryTrip(Document):
 			if stop.status == "Delivered" and not stop.actual_arrival_time:
 				stop.actual_arrival_time = now_datetime()
 
-	def on_update(self):
-		"""Trigger notification for failed deliveries.
+	def _get_dispatch_user(self):
+		"""Return the first enabled Dispatch Manager user, or fallback to current user."""
+		users = frappe.db.get_all(
+			"User",
+			filters=[
+				["User", "enabled", "=", 1],
+				["Has Role", "role", "=", "Dispatch Manager"],
+			],
+			limit=1,
+			pluck="name",
+		)
+		return users[0] if users else frappe.session.user
 
-		Compares current and previous child table rows to detect
-		stops whose status changed to Failed.
+	def on_update(self):
+		"""Trigger notifications and log status changes on delivery stops.
+
+		On first save (new trip):
+		- Notify Dispatch Manager with tracking links for all new stops
+
+		On subsequent saves:
+		- Detect newly added stops → notify tracking links
+		- Detect status changes → log to Delivery Status Log
+		- Notify on failed deliveries
 		"""
 		prev_doc = self.get_doc_before_save()
+
+		# Resolve dispatch user once to avoid repeated queries
+		target_user = self._get_dispatch_user()
+
 		if not prev_doc:
+			# First save — all stops are new
+			if self.get("delivery_stops"):
+				for stop in self.delivery_stops:
+					if stop.tracking_id:
+						self._notify_tracking_id(stop, target_user)
 			return
 
 		# Build lookup of previous stop statuses by sequence_no
@@ -88,22 +115,53 @@ class DeliveryTrip(Document):
 		if self.get("delivery_stops"):
 			for stop in self.delivery_stops:
 				prev = prev_status.get(stop.sequence_no)
-				if stop.status == "Failed" and prev != "Failed":
-					self.notify_delivery_failed(stop)
+				if prev is None:
+					# New stop added — notify tracking ID
+					if stop.tracking_id:
+						self._notify_tracking_id(stop, target_user)
+				elif prev != stop.status:
+					# Log the status change
+					self._log_status_change(stop)
+					# Notify on failed deliveries
+					if stop.status == "Failed":
+						self.notify_delivery_failed(stop)
+
+	def _log_status_change(self, stop):
+		"""Append a timestamped entry to Delivery Status Log for this stop."""
+		log = frappe.new_doc("Delivery Status Log")
+		log.parent = stop.name
+		log.parenttype = "Delivery Stop"
+		log.parentfield = "delivery_status_logs"
+		log.status = stop.status
+		log.location_label = stop.get("current_location_label", "")
+		log.timestamp = now_datetime()
+		log.flags.ignore_permissions = True
+		log.insert()
+
+	def _notify_tracking_id(self, stop, target_user):
+		"""Create System Notification with tracking ID link for dispatch staff."""
+		site_url = get_url()
+		tracking_link = "{0}/track?id={1}".format(site_url, stop.tracking_id)
+
+		notification = frappe.new_doc("Notification Log")
+		notification.for_user = target_user
+		notification.title = frappe._("New Tracking ID Generated")
+		notification.subject = frappe._(
+			"Tracking ID {0} generated for Stop #{1} (Customer: {2}). "
+			"Share with customer: {3}"
+		).format(
+			stop.tracking_id,
+			stop.sequence_no,
+			stop.customer,
+			tracking_link,
+		)
+		notification.document_type = "Delivery Trip"
+		notification.document_name = self.name
+		notification.insert(ignore_permissions=True)
 
 	def notify_delivery_failed(self, stop):
 		"""Create System Notification for failed delivery."""
-		# Find a user with Dispatch Manager role
-		dispatch_users = frappe.db.get_all(
-			"User",
-			filters=[
-				["User", "enabled", "=", 1],
-				["Has Role", "role", "=", "Dispatch Manager"],
-			],
-			limit=1,
-			pluck="name",
-		)
-		target_user = dispatch_users[0] if dispatch_users else frappe.session.user
+		target_user = self._get_dispatch_user()
 
 		notification = frappe.new_doc("Notification Log")
 		notification.for_user = target_user

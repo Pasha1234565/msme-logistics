@@ -24,7 +24,13 @@ fixtures = [
 
 # DocType Class
 # ------------------------------
-doctype_class = {}
+doctype_class = {
+	"Delivery Stop": "msme_logistics.logistics.doctype.delivery_stop.delivery_stop.DeliveryStop",
+	"Delivery Trip": "msme_logistics.logistics.doctype.delivery_trip.delivery_trip.DeliveryTrip",
+	"Delivery Status Log": "msme_logistics.logistics.doctype.delivery_status_log.delivery_status_log.DeliveryStatusLog",
+	"Transporter": "msme_logistics.logistics.doctype.transporter.transporter.Transporter",
+	"Trip Cost Reconciliation": "msme_logistics.logistics.doctype.trip_cost_reconciliation.trip_cost_reconciliation.TripCostReconciliation",
+}
 
 # Document Events
 # ------------------------------
