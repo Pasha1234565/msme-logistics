@@ -20,11 +20,24 @@ def create_msme_workspace():
 	"""Create MSME workspace if it doesn't exist."""
 	workspace_name = "MSME"
 
-	if frappe.db.exists("Workspace", workspace_name):
-		return
-
 	try:
-		workspace = frappe.new_doc("Workspace")
+		if frappe.db.exists("Workspace", workspace_name):
+			workspace = frappe.get_doc("Workspace", workspace_name)
+			workspace.shortcuts = []
+			workspace.number_cards = []
+			workspace.charts = []
+			workspace.content = json.dumps([])
+			workspace.links = []
+		else:
+			workspace = frappe.new_doc("Workspace")
+			workspace.name = workspace_name
+			workspace.title = workspace_name
+			workspace.workspace_name = workspace_name
+			workspace.label = workspace_name
+			workspace.module = "Logistics"
+			workspace.is_standard = 1
+			workspace.public = 1
+			workspace.icon = "truck"
 		workspace.name = workspace_name
 		workspace.title = workspace_name
 		workspace.workspace_name = workspace_name
@@ -91,12 +104,21 @@ def create_msme_workspace():
 
 		workspace.flags.ignore_permissions = True
 		workspace.flags.ignore_links = True
-		workspace.insert()
+		workspace.save()
 		frappe.db.commit()
 		print(f"✅ Created workspace: {workspace_name}")
 	except Exception as e:
 		frappe.db.rollback()
 		print(f"⚠️ Could not create workspace: {e}")
+
+
+def _generate_tracking_id():
+	"""Generate a unique tracking ID in format TRK-XXXXXXXX."""
+	for _ in range(100):
+		tid = "TRK-" + frappe.generate_hash(length=8).upper()
+		if not frappe.db.exists("Delivery Stop", {"tracking_id": tid}):
+			return tid
+	return "TRK-" + frappe.generate_hash(length=8).upper()
 
 
 def insert_demo_data():
@@ -148,21 +170,45 @@ def insert_demo_data():
 	warehouse = frappe.get_all("Warehouse", {"is_group": 0, "disabled": 0}, pluck="name")
 	warehouse = warehouse[0] if warehouse else ""
 
+	_arrival_time = add_days(now_datetime(), -3).strftime("%Y-%m-%d %H:%M:%S")
+
 	trips_data = [
 		{
 			"transporter": transporter_names[0], "driver_name": "Rajesh Kumar",
 			"vehicle_no": "DL-01-AB-1234", "trip_status": "In Transit",
 			"trip_date": add_days(today_date, -1), "planned_dispatch_date": add_days(today_date, -2),
+			"stop1_status": "Shipped",
+			"stop2_status": "In Transit",
+			"arrival": None,
 		},
 		{
 			"transporter": transporter_names[1], "driver_name": "Suresh Singh",
 			"vehicle_no": "DL-01-CD-5678", "trip_status": "Completed",
 			"trip_date": add_days(today_date, -3), "planned_dispatch_date": add_days(today_date, -3),
+			"stop1_status": "Delivered",
+			"stop2_status": "Delivered",
+			"arrival": _arrival_time,
 		},
 	]
 
 	for t in trips_data:
 		try:
+			stop1 = {
+				"sequence_no": 1, "customer": "Customer", "address": "123 Main St, Delhi",
+				"status": t["stop1_status"],
+				"delivery_window_start": "09:00:00", "delivery_window_end": "11:00:00",
+				"tracking_id": _generate_tracking_id(),
+			}
+			stop2 = {
+				"sequence_no": 2, "customer": "Customer", "address": "456 Park Ave, Delhi",
+				"status": t["stop2_status"],
+				"delivery_window_start": "11:30:00", "delivery_window_end": "13:00:00",
+				"tracking_id": _generate_tracking_id(),
+			}
+			if t["arrival"]:
+				stop1["actual_arrival_time"] = t["arrival"]
+				stop2["actual_arrival_time"] = t["arrival"]
+
 			doc = frappe.get_doc({
 				"doctype": "Delivery Trip",
 				"transporter": t["transporter"],
@@ -172,10 +218,7 @@ def insert_demo_data():
 				"trip_status": t["trip_status"],
 				"trip_date": t["trip_date"],
 				"planned_dispatch_date": t["planned_dispatch_date"],
-				"delivery_stops": [
-					{"sequence_no": 1, "customer": "Customer", "address": "123 Main St, Delhi", "status": "Delivered", "delivery_window_start": "09:00:00", "delivery_window_end": "11:00:00"},
-					{"sequence_no": 2, "customer": "Customer", "address": "456 Park Ave, Delhi", "status": "Pending", "delivery_window_start": "11:30:00", "delivery_window_end": "13:00:00"},
-				]
+				"delivery_stops": [stop1, stop2],
 			})
 			doc.flags.ignore_permissions = True
 			doc.flags.ignore_links = True
@@ -184,6 +227,30 @@ def insert_demo_data():
 			print(f"✅ Created Delivery Trip: {doc.name}")
 		except Exception as e:
 			print(f"⚠️ Skipped trip: {e}")
+
+	frappe.db.commit()
+
+	# ── Create Trip Cost Reconciliation for completed trips ──
+	completed_trips = frappe.db.sql(
+		"""SELECT name FROM `tabDelivery Trip`
+		 WHERE trip_status = 'Completed' LIMIT 5""",
+		as_dict=True,
+	)
+	for t in completed_trips:
+		try:
+			recon = frappe.get_doc({
+				"doctype": "Trip Cost Reconciliation",
+				"delivery_trip": t.name,
+				"reconciliation_date": today(),
+				"fuel_cost": 800,
+				"transporter_payout": 1200,
+			})
+			recon.flags.ignore_permissions = True
+			recon.flags.ignore_links = True
+			recon.insert()
+			print(f"✅ Created Trip Cost Reconciliation for {t.name}")
+		except Exception as e:
+			print(f"⚠️ Skipped reconciliation for {t.name}: {e}")
 
 	frappe.db.commit()
 	print("✅ Demo data inserted successfully!")

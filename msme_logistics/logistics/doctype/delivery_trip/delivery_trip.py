@@ -1,8 +1,12 @@
 from __future__ import unicode_literals
 
+#import std lib
+
 import frappe
 from frappe.model.document import Document
 from frappe.utils import now_datetime, get_url
+
+from msme_logistics.logistics.doctype.delivery_stop.delivery_stop import _generate_tracking_id
 
 
 class DeliveryTrip(Document):
@@ -86,10 +90,11 @@ class DeliveryTrip(Document):
 		"""Trigger notifications and log status changes on delivery stops.
 
 		On first save (new trip):
+		- Generate tracking IDs for any stop missing one
 		- Notify Dispatch Manager with tracking links for all new stops
 
 		On subsequent saves:
-		- Detect newly added stops → notify tracking links
+		- Detect newly added stops → generate tracking ID → notify tracking links
 		- Detect status changes → log to Delivery Status Log
 		- Notify on failed deliveries
 		"""
@@ -102,6 +107,7 @@ class DeliveryTrip(Document):
 			# First save — all stops are new
 			if self.get("delivery_stops"):
 				for stop in self.delivery_stops:
+					self._ensure_tracking_id(stop)
 					if stop.tracking_id:
 						self._notify_tracking_id(stop, target_user)
 			return
@@ -114,6 +120,7 @@ class DeliveryTrip(Document):
 
 		if self.get("delivery_stops"):
 			for stop in self.delivery_stops:
+				self._ensure_tracking_id(stop)
 				prev = prev_status.get(stop.sequence_no)
 				if prev is None:
 					# New stop added — notify tracking ID
@@ -125,6 +132,22 @@ class DeliveryTrip(Document):
 					# Notify on failed deliveries
 					if stop.status == "Failed":
 						self.notify_delivery_failed(stop)
+
+	def _ensure_tracking_id(self, stop):
+		"""Generate a tracking ID for this stop if it doesn't have one.
+
+		Child-table before_insert does not fire reliably during parent doc save
+		in Frappe v15, so this method provides a fallback that always runs
+		in the parent's on_update (which always fires).
+		"""
+		if not stop.tracking_id:
+			tid = _generate_tracking_id()
+			stop.tracking_id = tid
+			# Persist directly so it's available even if stop obj isn't re-fetched
+			frappe.db.set_value(
+				"Delivery Stop", stop.name, "tracking_id", tid,
+				update_modified=False
+			)
 
 	def _log_status_change(self, stop):
 		"""Append a timestamped entry to Delivery Status Log for this stop."""
