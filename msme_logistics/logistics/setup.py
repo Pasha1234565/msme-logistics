@@ -117,7 +117,7 @@ def create_msme_workspace():
 			{"type": "shortcut", "data": {"shortcut_name": "Failed Deliveries", "type": "Report", "link_to": "Failed Delivery Rate by Area", "icon": "warning", "onboard": 1}},
 			{"type": "header", "data": {"text": "Key Metrics"}},
 			{"type": "number_card", "data": {"number_card_name": "Trips In Transit Today", "label": "Trips In Transit Today"}},
-			{"type": "number_card", "data": {"number_card_name": "Failed Deliveries This Week", "label": "Failed Deliveries This Week"}},
+			{"type": "number_card", "data": {"number_card_name": "Deliveries Completed Today", "label": "Deliveries Completed Today"}},
 			{"type": "number_card", "data": {"number_card_name": "Avg Cost Per Stop", "label": "Avg Cost Per Stop"}},
 			{"type": "header", "data": {"text": "Analytics"}},
 			{"type": "chart", "data": {"chart_name": "SLA Compliance", "label": "SLA Compliance by Transporter", "chart_type": "Report", "report_name": "SLA Compliance by Transporter", "width": "Half"}},
@@ -269,11 +269,10 @@ def insert_demo_data():
 				"address": "789 Lake Rd, Delhi", "status": "Out for Delivery",
 				"delivery_window_start": "14:00:00", "delivery_window_end": "16:00:00",
 				"tracking_id": _generate_tracking_id(),
-			},
-			{
-				"sequence_no": 4, "customer": "Customer",
+			},				{"sequence_no": 4, "customer": "Customer",
 				"address": "321 Hill St, Delhi", "status": "Delivered",
 				"delivery_window_start": "16:30:00", "delivery_window_end": "18:00:00",
+				"actual_arrival_time": add_days(now_datetime(), -3).strftime("%Y-%m-%d %H:%M:%S"),
 				"tracking_id": _generate_tracking_id(),
 			},
 		]
@@ -311,6 +310,36 @@ def insert_demo_data():
 			print(f"✅ Created Delivery Trip: {doc.name}")
 		except Exception as e:
 			print(f"⚠️ Skipped trip: {e}")
+
+	frappe.db.commit()
+
+	# ── Create Trip Cost Reconciliation records for completed trips ──
+	completed_trips = frappe.db.sql(
+		"""SELECT name, transporter FROM `tabDelivery Trip`
+		 WHERE trip_status = 'Completed' LIMIT 5""",
+		as_dict=True,
+	)
+	for t in completed_trips:
+		stop_count = frappe.db.count("Delivery Stop", {"parent": t.name, "parenttype": "Delivery Trip"})
+		cost_per_stop = round(150.0 + (stop_count * 25.0), 2)
+		total_cost = round(cost_per_stop * stop_count, 2)
+		try:
+			recon = frappe.get_doc({
+				"doctype": "Trip Cost Reconciliation",
+				"delivery_trip": t.name,
+				"transporter": t.transporter,
+				"fuel_cost": 800,
+				"transporter_payout": 1200,
+				"total_stops": stop_count,
+				"cost_per_stop": cost_per_stop,
+				"total_cost": total_cost,
+			})
+			recon.flags.ignore_permissions = True
+			recon.flags.ignore_links = True
+			recon.insert()
+			print(f"✅ Created Trip Cost Reconciliation for {t.name}")
+		except Exception as e:
+			print(f"⚠️ Skipped reconciliation for {t.name}: {e}")
 
 	frappe.db.commit()
 	print("✅ Demo data inserted successfully!")
