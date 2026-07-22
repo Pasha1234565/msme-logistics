@@ -85,19 +85,27 @@ def create_msme_workspace():
 	"""Create MSME workspace if it doesn't exist."""
 	workspace_name = "MSME"
 
-	if frappe.db.exists("Workspace", workspace_name):
-		return
-
 	try:
-		workspace = frappe.new_doc("Workspace")
-		workspace.name = workspace_name
-		workspace.title = workspace_name
-		workspace.workspace_name = workspace_name
-		workspace.label = workspace_name
-		workspace.module = "Logistics"
-		workspace.is_standard = 1
-		workspace.public = 1
-		workspace.icon = "truck"
+		if frappe.db.exists("Workspace", workspace_name):
+			workspace = frappe.get_doc("Workspace", workspace_name)
+			workspace.flags.ignore_permissions = True
+			workspace.flags.ignore_links = True
+			# Clear existing shortcuts/charts/cards to rebuild
+			workspace.shortcuts = []
+			workspace.number_cards = []
+			workspace.charts = []
+			workspace.content = json.dumps([])
+			workspace.links = []
+		else:
+			workspace = frappe.new_doc("Workspace")
+			workspace.name = workspace_name
+			workspace.title = workspace_name
+			workspace.workspace_name = workspace_name
+			workspace.module = "Logistics"
+			workspace.is_standard = 1
+			workspace.public = 1
+			workspace.icon = "truck"
+			workspace.label = workspace_name
 
 		# Build content layout
 		content = [

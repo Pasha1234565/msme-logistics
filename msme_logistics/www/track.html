@@ -255,7 +255,9 @@
 .timeline-dot.status-delivered { background: #28a745; }
 .timeline-dot.status-failed { background: #dc3545; }
 .timeline-dot.status-rescheduled { background: #ffc107; }
+.timeline-dot.status-pending { background: #94a3b8; }
 .timeline-dot.status-shipped,
+.timeline-dot.status-in-transit,
 .timeline-dot.status-out-for-delivery { background: #2490ef; }
 
 .timeline-line {
@@ -387,9 +389,12 @@ frappe.ready(function() {
 		steps.forEach(s => { s.classList.remove('active', 'completed', 'failed'); });
 		connectors.forEach(c => c.classList.remove('completed'));
 
+		// ── Status to stepper step mapping ──
+		// Complete all steps up to (but not including) `status`, then activate `status`
+		const stepOrder = ['Pending', 'Shipped', 'In Transit', 'Out for Delivery', 'Delivered'];
+		const stepKeys = ['shipped', 'in_transit', 'out_for_delivery', 'delivered'];
+
 		if (status === 'Failed') {
-			// Mark all before "shipped" as completed, shipped as failed
-			// Actually, just mark the last active step as failed
 			setStep('shipped', 'completed');
 			setConnector(0, true);
 			setStep('in_transit', 'completed');
@@ -399,7 +404,6 @@ frappe.ready(function() {
 		}
 
 		if (status === 'Rescheduled') {
-			// Show as indeterminate — keep at current progress
 			setStep('shipped', 'completed');
 			setConnector(0, true);
 			setStep('in_transit', 'completed');
@@ -408,7 +412,12 @@ frappe.ready(function() {
 			return;
 		}
 
-		if (status === 'Delivered') {
+		// Find index in the step order
+		var idx = stepOrder.indexOf(status);
+		if (idx < 0) idx = 1; // Unknown status → treat as 'Shipped'
+
+		if (idx >= 5) {
+			// Delivered — all completed (shouldn't reach here since Delivered is in stepOrder now)
 			setStep('shipped', 'completed');
 			setConnector(0, true);
 			setStep('in_transit', 'completed');
@@ -419,8 +428,17 @@ frappe.ready(function() {
 			return;
 		}
 
-		// Pending — Shipped is active
-		setStep('shipped', 'active');
+		// Steps before idx = completed, step at idx = active, rest = untouched
+		for (var i = 0; i < stepKeys.length; i++) {
+			if (i < idx) {
+				setStep(stepKeys[i], 'completed');
+				if (i < stepKeys.length - 1) setConnector(i, true);
+			} else if (i === idx) {
+				setStep(stepKeys[i], 'active');
+			} else {
+				break;
+			}
+		}
 	}
 
 	function setStep(key, cls) {

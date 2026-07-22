@@ -78,6 +78,10 @@ frappe.pages['delivery-status'].on_page_load = function (wrapper) {
 		$steps.removeClass('active completed failed');
 		$connectors.removeClass('completed');
 
+		// ── Status to stepper step mapping ──
+		var stepOrder = ['Pending', 'Shipped', 'In Transit', 'Out for Delivery', 'Delivered'];
+		var stepKeys = ['shipped', 'in_transit', 'out_for_delivery', 'delivered'];
+
 		if (status === 'Failed') {
 			set_step('shipped', 'completed');
 			set_connector(0, true);
@@ -96,7 +100,12 @@ frappe.pages['delivery-status'].on_page_load = function (wrapper) {
 			return;
 		}
 
-		if (status === 'Delivered') {
+		// Find index in the step order
+		var idx = stepOrder.indexOf(status);
+		if (idx < 0) idx = 1; // Unknown status → treat as 'Shipped'
+
+		if (idx >= 5) {
+			// Delivered — all completed
 			set_step('shipped', 'completed');
 			set_connector(0, true);
 			set_step('in_transit', 'completed');
@@ -107,8 +116,17 @@ frappe.pages['delivery-status'].on_page_load = function (wrapper) {
 			return;
 		}
 
-		// Pending — Shipped is active
-		set_step('shipped', 'active');
+		// Steps before idx = completed, step at idx = active, rest = untouched
+		for (var i = 0; i < stepKeys.length; i++) {
+			if (i < idx) {
+				set_step(stepKeys[i], 'completed');
+				if (i < stepKeys.length - 1) set_connector(i, true);
+			} else if (i === idx) {
+				set_step(stepKeys[i], 'active');
+			} else {
+				break;
+			}
+		}
 	}
 
 	function set_step(key, cls) {
@@ -448,7 +466,9 @@ function get_page_html() {
 .ds-timeline-dot.status-delivered { background: #28a745; }
 .ds-timeline-dot.status-failed { background: #dc3545; }
 .ds-timeline-dot.status-rescheduled { background: #ffc107; }
+.ds-timeline-dot.status-pending { background: #94a3b8; }
 .ds-timeline-dot.status-shipped,
+.ds-timeline-dot.status-in-transit,
 .ds-timeline-dot.status-out-for-delivery { background: #2490ef; }
 
 .ds-timeline-line {

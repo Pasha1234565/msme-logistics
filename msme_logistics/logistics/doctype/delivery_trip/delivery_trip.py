@@ -104,6 +104,8 @@ class DeliveryTrip(Document):
 				for stop in self.delivery_stops:
 					if stop.tracking_id:
 						self._notify_tracking_id(stop, target_user)
+					# Log initial status
+					self._log_status_change(stop)
 			return
 
 		# Build lookup of previous stop statuses by sequence_no
@@ -119,6 +121,8 @@ class DeliveryTrip(Document):
 					# New stop added — notify tracking ID
 					if stop.tracking_id:
 						self._notify_tracking_id(stop, target_user)
+					# Log initial status for newly added stops
+					self._log_status_change(stop)
 				elif prev != stop.status:
 					# Log the status change
 					self._log_status_change(stop)
