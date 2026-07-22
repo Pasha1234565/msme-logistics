@@ -1,0 +1,9 @@
+{
+ "doctype": "Page",
+ "name": "delivery-status",
+ "module": "Logistics",
+ "title": "Delivery Status",
+ "icon": "fa fa-truck",
+ "standard": "Yes",
+ "system_page": 0
+}

@@ -38,6 +38,7 @@ def create_msme_workspace():
 		content = [
 			{"type": "header", "data": {"text": "Shortcuts"}},
 			{"type": "shortcut", "data": {"shortcut_name": "New Delivery Trip", "type": "DocType", "link_to": "Delivery Trip", "doc_view": "New", "icon": "share", "onboard": 1}},
+			{"type": "shortcut", "data": {"shortcut_name": "Delivery Status", "type": "Page", "link_to": "delivery-status", "icon": "map-marker", "onboard": 1}},
 			{"type": "shortcut", "data": {"shortcut_name": "Transporter List", "type": "DocType", "link_to": "Transporter", "doc_view": "List", "icon": "user", "onboard": 1}},
 			{"type": "shortcut", "data": {"shortcut_name": "Trip Cost Recon", "type": "DocType", "link_to": "Trip Cost Reconciliation", "doc_view": "List", "icon": "currency", "onboard": 1}},
 			{"type": "shortcut", "data": {"shortcut_name": "Failed Deliveries", "type": "Report", "link_to": "Failed Delivery Rate by Area", "icon": "warning", "onboard": 1}},
@@ -66,6 +67,7 @@ def create_msme_workspace():
 		# Add shortcuts
 		for s in [
 			{"label": "New Delivery Trip", "type": "DocType", "link_to": "Delivery Trip", "doc_view": "New", "icon": "share", "kanban_board": "", "dependencies": "", "onboard": 1},
+			{"label": "Delivery Status", "type": "Page", "link_to": "delivery-status", "icon": "map-marker", "kanban_board": "", "dependencies": "", "onboard": 1},
 			{"label": "Transporter List", "type": "DocType", "link_to": "Transporter", "doc_view": "List", "icon": "user", "kanban_board": "", "dependencies": "", "onboard": 1},
 			{"label": "Trip Cost Recon", "type": "DocType", "link_to": "Trip Cost Reconciliation", "doc_view": "List", "icon": "currency", "kanban_board": "", "dependencies": "", "onboard": 1},
 			{"label": "Failed Deliveries", "type": "Report", "link_to": "Failed Delivery Rate by Area", "doc_view": "", "icon": "warning", "kanban_board": "", "dependencies": "", "onboard": 1},
