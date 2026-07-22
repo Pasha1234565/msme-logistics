@@ -250,7 +250,8 @@ def insert_demo_data():
 		return
 
 	warehouse = frappe.get_all("Warehouse", {"is_group": 0, "disabled": 0}, pluck="name")
-	warehouse = warehouse[0] if warehouse else ""	_ts = lambda: _generate_tracking_id()
+	warehouse = warehouse[0] if warehouse else ""
+	_ts = lambda: _generate_tracking_id()
 	_arrival = add_days(now_datetime(), -3).strftime("%Y-%m-%d %H:%M:%S")
 
 	trips_config = [
