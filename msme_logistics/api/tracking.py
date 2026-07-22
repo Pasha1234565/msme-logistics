@@ -4,7 +4,7 @@ import math
 
 import frappe
 from frappe import _
-from frappe.rate_limiter import rate_limiter
+from frappe.rate_limiter import rate_limit
 from frappe.utils import add_days
 
 
@@ -95,7 +95,7 @@ def _derive_eta(stop):
 
 
 @frappe.whitelist(allow_guest=True)
-@rate_limiter(limit=10, seconds=60)
+@rate_limit(key="track_order", limit=10, seconds=60)
 def track_order(tracking_id):
 	"""Public endpoint for customers to track an order by its tracking ID.
 
