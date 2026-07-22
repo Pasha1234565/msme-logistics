@@ -164,7 +164,7 @@ def create_msme_workspace():
 
 		workspace.flags.ignore_permissions = True
 		workspace.flags.ignore_links = True
-		workspace.insert()
+		workspace.save()
 		frappe.db.commit()
 		print(f"✅ Created workspace: {workspace_name}")
 	except Exception as e:

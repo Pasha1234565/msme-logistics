@@ -104,18 +104,6 @@ frappe.pages['delivery-status'].on_page_load = function (wrapper) {
 		var idx = stepOrder.indexOf(status);
 		if (idx < 0) idx = 1; // Unknown status → treat as 'Shipped'
 
-		if (idx >= 5) {
-			// Delivered — all completed
-			set_step('shipped', 'completed');
-			set_connector(0, true);
-			set_step('in_transit', 'completed');
-			set_connector(1, true);
-			set_step('out_for_delivery', 'completed');
-			set_connector(2, true);
-			set_step('delivered', 'completed');
-			return;
-		}
-
 		// Steps before idx = completed, step at idx = active, rest = untouched
 		for (var i = 0; i < stepKeys.length; i++) {
 			if (i < idx) {

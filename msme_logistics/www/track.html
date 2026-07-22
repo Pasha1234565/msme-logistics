@@ -416,18 +416,6 @@ frappe.ready(function() {
 		var idx = stepOrder.indexOf(status);
 		if (idx < 0) idx = 1; // Unknown status → treat as 'Shipped'
 
-		if (idx >= 5) {
-			// Delivered — all completed (shouldn't reach here since Delivered is in stepOrder now)
-			setStep('shipped', 'completed');
-			setConnector(0, true);
-			setStep('in_transit', 'completed');
-			setConnector(1, true);
-			setStep('out_for_delivery', 'completed');
-			setConnector(2, true);
-			setStep('delivered', 'completed');
-			return;
-		}
-
 		// Steps before idx = completed, step at idx = active, rest = untouched
 		for (var i = 0; i < stepKeys.length; i++) {
 			if (i < idx) {
