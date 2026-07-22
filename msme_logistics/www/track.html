@@ -66,18 +66,7 @@
 				{% endif %}
 				{% endfor %}
 			</div>
-			<!-- Failed Badge (shown when status is Failed) -->
-			<div id="failed-badge" class="text-center mt-3" style="display: none;">
-				<span class="badge badge-danger" style="font-size: 0.95rem; padding: 0.4rem 1rem; border-radius: 20px;">
-					⚠ Delivery Failed
-				</span>
-			</div>
-			<!-- Rescheduled Badge -->
-			<div id="rescheduled-badge" class="text-center mt-3" style="display: none;">
-				<span class="badge badge-warning" style="font-size: 0.95rem; padding: 0.4rem 1rem; border-radius: 20px;">
-					🔄 Rescheduled
-				</span>
-			</div>
+
 		</div>
 
 		<!-- Current Location & ETA -->
@@ -252,13 +241,10 @@
 	flex-shrink: 0;
 }
 
-.timeline-dot.status-delivered { background: #28a745; }
-.timeline-dot.status-failed { background: #dc3545; }
-.timeline-dot.status-rescheduled { background: #ffc107; }
-.timeline-dot.status-pending { background: #94a3b8; }
 .timeline-dot.status-shipped,
 .timeline-dot.status-in-transit,
 .timeline-dot.status-out-for-delivery { background: #2490ef; }
+.timeline-dot.status-delivered { background: #28a745; }
 
 .timeline-line {
 	width: 2px;
@@ -370,10 +356,6 @@ frappe.ready(function() {
 		// ── Stepper ──
 		renderStepper(data.status);
 
-		// ── Failed / Rescheduled badge ──
-		document.getElementById('failed-badge').style.display = data.status === 'Failed' ? 'block' : 'none';
-		document.getElementById('rescheduled-badge').style.display = data.status === 'Rescheduled' ? 'block' : 'none';
-
 		// ── Info cards ──
 		document.getElementById('current-location').textContent = data.current_location || '—';
 		document.getElementById('eta-date').textContent = formatDate(data.estimated_delivery_date) || '—';
@@ -392,38 +374,24 @@ frappe.ready(function() {
 
 		// ── Status to stepper step mapping ──
 		// Complete all steps up to (but not including) `status`, then activate `status`
-		const stepOrder = ['Pending', 'Shipped', 'In Transit', 'Out for Delivery', 'Delivered'];
-		const stepKeys = ['shipped', 'in_transit', 'out_for_delivery', 'delivered'];
-
-		if (status === 'Failed') {
-			setStep('shipped', 'completed');
-			setConnector(0, true);
-			setStep('in_transit', 'completed');
-			setConnector(1, true);
-			setStep('out_for_delivery', 'failed');
-			return;
-		}
-
-		if (status === 'Rescheduled') {
-			setStep('shipped', 'completed');
-			setConnector(0, true);
-			setStep('in_transit', 'completed');
-			setConnector(1, true);
-			setStep('out_for_delivery', 'active');
-			return;
-		}
+		// ── Status to stepper step mapping ──
+		// Statuses map directly to step indices: Shipped(0) → In Transit(1) → Out for Delivery(2) → Delivered(3)
+		var stepOrder = ['Shipped', 'In Transit', 'Out for Delivery', 'Delivered'];
+		var stepKeys = ['shipped', 'in_transit', 'out_for_delivery', 'delivered'];
 
 		// Find index in the step order
 		var idx = stepOrder.indexOf(status);
-		if (idx < 0) idx = 1; // Unknown status → treat as 'Shipped'
+		if (idx < 0) idx = 0; // Unknown → treat as 'Shipped'
 
-		// Steps before idx = completed, step at idx = active, rest = untouched
+		// Steps before idx = completed, step at idx = completed if last step else active
 		for (var i = 0; i < stepKeys.length; i++) {
 			if (i < idx) {
 				setStep(stepKeys[i], 'completed');
-				if (i < stepKeys.length - 1) setConnector(i, true);
+				if (i < idx && i < stepKeys.length - 1) setConnector(i, true);
 			} else if (i === idx) {
-				setStep(stepKeys[i], 'active');
+				// Last step (Delivered) shows as completed, others show as active
+				var cls = (idx === stepKeys.length - 1) ? 'completed' : 'active';
+				setStep(stepKeys[i], cls);
 			} else {
 				break;
 			}

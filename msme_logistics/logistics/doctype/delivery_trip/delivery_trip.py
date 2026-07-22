@@ -126,9 +126,6 @@ class DeliveryTrip(Document):
 				elif prev != stop.status:
 					# Log the status change
 					self._log_status_change(stop)
-					# Notify on failed deliveries
-					if stop.status == "Failed":
-						self.notify_delivery_failed(stop)
 
 	def _log_status_change(self, stop):
 		"""Append a timestamped entry to Delivery Status Log for this stop."""
@@ -158,27 +155,6 @@ class DeliveryTrip(Document):
 			stop.sequence_no,
 			stop.customer,
 			tracking_link,
-		)
-		notification.document_type = "Delivery Trip"
-		notification.document_name = self.name
-		notification.insert(ignore_permissions=True)
-
-	def notify_delivery_failed(self, stop):
-		"""Create System Notification for failed delivery."""
-		target_user = self._get_dispatch_user()
-
-		notification = frappe.new_doc("Notification Log")
-		notification.for_user = target_user
-		notification.title = frappe._("Delivery Failed")
-		notification.subject = frappe._(
-			"Delivery failed at stop #{0}: {1} (Customer: {2}). "
-			"Trip: {3}, Transporter: {4}"
-		).format(
-			stop.sequence_no,
-			stop.address or "N/A",
-			stop.customer,
-			self.name,
-			self.transporter,
 		)
 		notification.document_type = "Delivery Trip"
 		notification.document_name = self.name

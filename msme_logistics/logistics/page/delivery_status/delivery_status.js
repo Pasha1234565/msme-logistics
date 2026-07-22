@@ -60,10 +60,6 @@ frappe.pages['delivery-status'].on_page_load = function (wrapper) {
 		// ── Stepper ──
 		render_stepper(data.status);
 
-		// ── Badges ──
-		page.body.find('#ds-failed-badge').toggle(data.status === 'Failed');
-		page.body.find('#ds-rescheduled-badge').toggle(data.status === 'Rescheduled');
-
 		// ── Info cards ──
 		page.body.find('#ds-location').text(data.current_location || '—');
 		page.body.find('#ds-eta').text(format_date(data.estimated_delivery_date) || '—');
@@ -80,38 +76,23 @@ frappe.pages['delivery-status'].on_page_load = function (wrapper) {
 		$connectors.removeClass('completed');
 
 		// ── Status to stepper step mapping ──
-		var stepOrder = ['Pending', 'Shipped', 'In Transit', 'Out for Delivery', 'Delivered'];
+		// Statuses map directly to step indices: Shipped(0) → In Transit(1) → Out for Delivery(2) → Delivered(3)
+		var stepOrder = ['Shipped', 'In Transit', 'Out for Delivery', 'Delivered'];
 		var stepKeys = ['shipped', 'in_transit', 'out_for_delivery', 'delivered'];
-
-		if (status === 'Failed') {
-			set_step('shipped', 'completed');
-			set_connector(0, true);
-			set_step('in_transit', 'completed');
-			set_connector(1, true);
-			set_step('out_for_delivery', 'failed');
-			return;
-		}
-
-		if (status === 'Rescheduled') {
-			set_step('shipped', 'completed');
-			set_connector(0, true);
-			set_step('in_transit', 'completed');
-			set_connector(1, true);
-			set_step('out_for_delivery', 'active');
-			return;
-		}
 
 		// Find index in the step order
 		var idx = stepOrder.indexOf(status);
-		if (idx < 0) idx = 1; // Unknown status → treat as 'Shipped'
+		if (idx < 0) idx = 0; // Unknown → treat as 'Shipped'
 
-		// Steps before idx = completed, step at idx = active, rest = untouched
+		// Steps before idx = completed, step at idx = completed if last step else active
 		for (var i = 0; i < stepKeys.length; i++) {
 			if (i < idx) {
 				set_step(stepKeys[i], 'completed');
-				if (i < stepKeys.length - 1) set_connector(i, true);
+				if (i < idx && i < stepKeys.length - 1) set_connector(i, true);
 			} else if (i === idx) {
-				set_step(stepKeys[i], 'active');
+				// Last step (Delivered) shows as completed, others show as active
+				var cls = (idx === stepKeys.length - 1) ? 'completed' : 'active';
+				set_step(stepKeys[i], cls);
 			} else {
 				break;
 			}
@@ -279,16 +260,7 @@ function get_page_html() {
 					<div class="ds-step-label">${__('Delivered')}</div>
 				</div>
 			</div>
-			<div id="ds-failed-badge" class="text-center mt-3 hide">
-				<span class="badge badge-danger" style="font-size: 0.95rem; padding: 0.4rem 1rem; border-radius: 20px;">
-					⚠ ${__('Delivery Failed')}
-				</span>
-			</div>
-			<div id="ds-rescheduled-badge" class="text-center mt-3 hide">
-				<span class="badge badge-warning" style="font-size: 0.95rem; padding: 0.4rem 1rem; border-radius: 20px;">
-					🔄 ${__('Rescheduled')}
-				</span>
-			</div>
+
 		</div>
 
 		<!-- Info Cards -->
@@ -452,13 +424,10 @@ function get_page_html() {
 	flex-shrink: 0;
 }
 
-.ds-timeline-dot.status-delivered { background: #28a745; }
-.ds-timeline-dot.status-failed { background: #dc3545; }
-.ds-timeline-dot.status-rescheduled { background: #ffc107; }
-.ds-timeline-dot.status-pending { background: #94a3b8; }
 .ds-timeline-dot.status-shipped,
 .ds-timeline-dot.status-in-transit,
 .ds-timeline-dot.status-out-for-delivery { background: #2490ef; }
+.ds-timeline-dot.status-delivered { background: #28a745; }
 
 .ds-timeline-line {
 	width: 2px;

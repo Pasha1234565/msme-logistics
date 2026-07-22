@@ -150,7 +150,7 @@ def create_msme_workspace():
 		# Add number cards
 		for c in [
 			{"number_card_name": "Trips In Transit Today", "label": "Trips In Transit Today", "type": "Document Type", "document_type": "Delivery Trip", "function": "Count", "filter_operator": "=", "filter_field": "trip_status", "filter_value": "In Transit", "color": "#2490ef", "show_trend": 1},
-			{"number_card_name": "Failed Deliveries This Week", "label": "Failed Deliveries This Week", "type": "Document Type", "document_type": "Delivery Stop", "function": "Count", "filter_operator": "=", "filter_field": "status", "filter_value": "Failed", "color": "#ff6b6b", "show_trend": 1},
+			{"number_card_name": "Deliveries Completed Today", "label": "Deliveries Completed Today", "type": "Document Type", "document_type": "Delivery Stop", "function": "Count", "filter_operator": "=", "filter_field": "status", "filter_value": "Delivered", "color": "#28a745", "show_trend": 1},
 			{"number_card_name": "Avg Cost Per Stop", "label": "Avg Cost Per Stop", "type": "Document Type", "document_type": "Trip Cost Reconciliation", "function": "Average", "aggregate_function_based_on": "cost_per_stop", "color": "#28a745"},
 		]:
 			workspace.append("number_cards", c)
@@ -180,6 +180,26 @@ def _generate_tracking_id():
 		if not frappe.db.exists("Delivery Stop", {"tracking_id": tid}):
 			return tid
 	return "TRK-" + "".join(secrets.choice(chars) for _ in range(8))
+
+
+def delete_demo_data():
+	"""Delete existing demo data (trips, reconciliations, stops, status logs, transporters).
+
+	Run from bench console:
+	  bench execute msme_logistics.logistics.setup.delete_demo_data
+	"""
+	print("🗑️  Deleting existing demo data...")
+	for doctype in ["Delivery Status Log", "Delivery Stop", "Delivery Trip Delivery Note", "Delivery Trip", "Trip Cost Reconciliation", "Transporter"]:
+		names = frappe.get_all(doctype, pluck="name")
+		if names:
+			for name in names:
+				try:
+					frappe.delete_doc(doctype, name, ignore_permissions=True, force=True)
+				except Exception:
+					pass
+			print(f"  ✅ Deleted {len(names)} {doctype} records")
+		frappe.db.commit()
+	print("✅ Demo data deleted. Run `bench execute msme_logistics.logistics.setup.insert_demo_data` to create fresh data.")
 
 
 def insert_demo_data():
@@ -233,17 +253,27 @@ def insert_demo_data():
 
 	# Helper to generate tracking IDs for demo stops
 	def make_stops():
-		return [
-			{
-				"sequence_no": 1, "customer": "Customer",
-				"address": "123 Main St, Delhi", "status": "Delivered",
+		return [				{"sequence_no": 1, "customer": "Customer",
+				"address": "123 Main St, Delhi", "status": "Shipped",
 				"delivery_window_start": "09:00:00", "delivery_window_end": "11:00:00",
 				"tracking_id": _generate_tracking_id(),
 			},
 			{
 				"sequence_no": 2, "customer": "Customer",
-				"address": "456 Park Ave, Delhi", "status": "Pending",
+				"address": "456 Park Ave, Delhi", "status": "In Transit",
 				"delivery_window_start": "11:30:00", "delivery_window_end": "13:00:00",
+				"tracking_id": _generate_tracking_id(),
+			},
+			{
+				"sequence_no": 3, "customer": "Customer",
+				"address": "789 Lake Rd, Delhi", "status": "Out for Delivery",
+				"delivery_window_start": "14:00:00", "delivery_window_end": "16:00:00",
+				"tracking_id": _generate_tracking_id(),
+			},
+			{
+				"sequence_no": 4, "customer": "Customer",
+				"address": "321 Hill St, Delhi", "status": "Delivered",
+				"delivery_window_start": "16:30:00", "delivery_window_end": "18:00:00",
 				"tracking_id": _generate_tracking_id(),
 			},
 		]
