@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-#import std lib
-
 import frappe
 from frappe.model.document import Document
 from frappe.utils import now_datetime, get_url
