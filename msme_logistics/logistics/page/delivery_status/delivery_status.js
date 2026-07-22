@@ -45,9 +45,10 @@ frappe.pages['delivery-status'].on_page_load = function (wrapper) {
 			},
 			error: function (err) {
 				$spinner.addClass('hide');
-				var msg =
-					(err && (err.message || err._error_message)) ||
-					__('No order found for this tracking ID. Please check and try again.');
+				// Show the actual server error — don't mask it with a generic message
+				var msg = (err && (err.message || err._error_message || JSON.stringify(err)))
+					|| __('No order found for this tracking ID. Please check and try again.');
+				console.error('Tracking API error:', err);
 				show_error(msg);
 			},
 		});

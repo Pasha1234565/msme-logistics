@@ -95,7 +95,7 @@ def _derive_eta(stop):
 
 
 @frappe.whitelist(allow_guest=True)
-@rate_limit(key="track_order", limit=10, seconds=60)
+@rate_limit(limit=30, seconds=60)
 def track_order(tracking_id):
 	"""Public endpoint for customers to track an order by its tracking ID.
 

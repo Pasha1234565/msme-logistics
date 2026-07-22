@@ -356,7 +356,8 @@ frappe.ready(function() {
 			},
 			error: function(err) {
 				spinner.style.display = 'none';
-				var msg = (err && (err.message || err._error_message))
+				console.error('Tracking API error:', err);
+				var msg = (err && (err.message || err._error_message || JSON.stringify(err)))
 					|| 'No order found for this tracking ID. Please check and try again.';
 				showError(msg);
 			}
