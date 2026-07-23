@@ -164,12 +164,7 @@ def _create_delivery_trips(transporters, customers, warehouse):
 	#   transporter, driver, vehicle, total_distance_km, days_ago (trip/dispatch date),
 	#   target_status (final trip_status shown to the user),
 	#   stops: (seq, customer, address, window_start, window_end, status, actual_arrival_datetime_or_None)
-	#
-	# NOTE: Stops are built using `frappe.get_doc()` with child rows inline in
-	# the dict (NOT doc.append()). This matches the pattern used by the
-	# order_tracking_test.py which reliably generates tracking IDs via the
-	# DeliveryStop.before_insert hook.
-	trip_configs = [
+	trips = [
 		{
 			"transporter": ft, "driver": "Rajesh Kumar", "vehicle": "DL-01-AB-1234",
 			"total_distance_km": 42.5, "days_ago": 5, "target_status": "Completed",
@@ -246,43 +241,50 @@ def _create_delivery_trips(transporters, customers, warehouse):
 	]
 
 	created = []
-	for cfg in trip_configs:
-		final_status = cfg["target_status"]
+	for t in trips:
+		doc = frappe.new_doc("Delivery Trip")
+		doc.transporter = t["transporter"]
+		doc.driver_name = t["driver"]
+		doc.vehicle_no = t["vehicle"]
+		doc.origin_warehouse = warehouse
+		doc.total_distance_km = t["total_distance_km"]
+		doc.trip_date = day(t["days_ago"])
+		doc.planned_dispatch_date = day(t["days_ago"])
 
-		# Build stops list with inline tracking IDs (belt + suspenders:
-		# both the explicit tracking_id below AND the DeliveryStop.before_insert
-		# hook will fire, so IDs are guaranteed).
-		stops_data = []
-		for seq, customer, address, ws, we, stop_status, arrival_dt in cfg["stops"]:
-			stops_data.append({
+		# Always start with "Planned" to match the initial workflow state,
+		# bypassing workflow transition validation entirely.
+		final_status = t["target_status"]
+		doc.trip_status = "Planned"
+
+		for seq, customer, address, ws, we, status, arrival_dt in t["stops"]:
+			stop = doc.append("delivery_stops", {
 				"sequence_no": seq,
 				"customer": customer,
 				"address": address,
 				"delivery_window_start": ws,
 				"delivery_window_end": we,
-				"status": stop_status,
+				"status": status,
 				"actual_arrival_time": arrival_dt,
-				"tracking_id": DeliveryStop.generate_tracking_id(),
 			})
 
-		doc = frappe.get_doc({
-			"doctype": "Delivery Trip",
-			"transporter": cfg["transporter"],
-			"driver_name": cfg["driver"],
-			"vehicle_no": cfg["vehicle"],
-			"origin_warehouse": warehouse,
-			"total_distance_km": cfg["total_distance_km"],
-			"trip_date": day(cfg["days_ago"]),
-			"planned_dispatch_date": day(cfg["days_ago"]),
-			"trip_status": "Planned",
-			"delivery_stops": stops_data,
-		})
+			# Explicitly generate and set tracking ID.
+			stop.tracking_id = DeliveryStop.generate_tracking_id()
 
 		doc.flags.ignore_permissions = True
-		doc.flags.ignore_links = True
 		doc.insert()
 
-		# ── Bypass doc.submit() — the active workflow blocks submission ──
+		# ═══════════════════════════════════════════════════════════════════
+		# Bypass doc.submit() entirely!
+		#
+		# Delivery Trip has an active workflow (Planned → Dispatched →
+		# In Transit → Completed → Reconciled), and Frappe's workflow
+		# system restricts submit() from any state. Calling doc.submit()
+		# either throws an error or silently fails to set docstatus=1.
+		#
+		# Instead, we use direct SQL to set both docstatus and trip_status
+		# in one shot, bypassing ALL hooks, workflow rules, and POD
+		# validation. This is demo/seed data, not real operational data.
+		# ═══════════════════════════════════════════════════════════════════
 		if final_status != "Planned":
 			frappe.db.sql("""
 				UPDATE `tabDelivery Trip`
@@ -292,7 +294,7 @@ def _create_delivery_trips(transporters, customers, warehouse):
 				WHERE name = %s
 			""", (
 				final_status,
-				arrival(cfg["days_ago"], 16, 0) if final_status == "Completed" else None,
+				arrival(t["days_ago"], 16, 0) if final_status == "Completed" else None,
 				doc.name,
 			))
 		else:
@@ -303,7 +305,7 @@ def _create_delivery_trips(transporters, customers, warehouse):
 			""", (final_status, doc.name))
 
 		created.append(doc.name)
-		print(f"Created Delivery Trip: {doc.name} ({cfg['transporter']}, {final_status})")
+		print(f"Created Delivery Trip: {doc.name} ({t['transporter']}, {final_status})")
 
 		# Commit after each trip so partial data survives errors on later trips.
 		frappe.db.commit()
