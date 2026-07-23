@@ -122,6 +122,11 @@ def execute():
 	if old_trips:
 		frappe.db.commit()
 
+	# Also delete any old Trip Cost Reconciliation records with DEMO names
+	# to prevent PRIMARY KEY conflicts when creating fresh ones.
+	frappe.db.sql("DELETE FROM `tabTrip Cost Reconciliation` WHERE name LIKE 'TCR-DEMO-%%'")
+	frappe.db.commit()
+
 	ft = "FastTrack Logistics"
 	ce = "CityExpress Couriers"
 	sh = "SafeHands Transport"
