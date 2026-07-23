@@ -21,6 +21,7 @@ def fix_all_child_tables():
 	"""Add parent columns to ALL Logistics child tables and ensure indexes exist."""
 	tables = [
 		"tabDelivery Stop",
+		"tabDelivery Status Log",
 		"tabDelivery Trip Delivery Note",
 		"tabTransporter Vehicle Type",
 		"tabTransporter Service Area",
