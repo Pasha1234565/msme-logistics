@@ -12,8 +12,11 @@ def execute():
 	today_date = today()
 
 	# ── Skip if data already exists ──────────────────────────────────────
-	if frappe.db.exists("Delivery Trip", "DT-DEMO-0001"):
-		print("✅ Demo data already exists, skipping")
+	# Check by Customer (not trip name), because old raw-SQL scripts already
+	# created DT-DEMO-0001..0007 trips but NEVER created Customer records.
+	# If "Raj Electronics" exists, the new script already ran successfully.
+	if frappe.db.exists("Customer", "Raj Electronics"):
+		print("✅ Demo data already exists (Customer 'Raj Electronics' found). Skipping.")
 		return
 
 	print("Inserting comprehensive demo data...")
@@ -107,6 +110,18 @@ def execute():
 	warehouse = frappe.db.get_value("Warehouse", {"is_group": 0, "disabled": 0}, "name")
 
 	# ── 3. Delivery Trips with Stops ─────────────────────────────────────
+	# Delete any DT-DEMO-* trips left over from old scripts so we can
+	# re-create them fresh without PRIMARY KEY conflicts.
+	old_trips = frappe.db.sql_list(
+		"SELECT name FROM `tabDelivery Trip` WHERE name LIKE 'DT-DEMO-%%'"
+	)
+	for old_name in old_trips:
+		frappe.db.sql("DELETE FROM `tabDelivery Stop` WHERE parent = %s", old_name)
+		frappe.db.sql("DELETE FROM `tabDelivery Trip` WHERE name = %s", old_name)
+		print(f"  🗑️  Removed old trip: {old_name}")
+	if old_trips:
+		frappe.db.commit()
+
 	ft = "FastTrack Logistics"
 	ce = "CityExpress Couriers"
 	sh = "SafeHands Transport"
@@ -228,7 +243,8 @@ def execute():
 			""", (frappe.generate_hash("", 10), t["name"], seq, seq, cust, addr,
 				ws, we, status, arrival, tracking_id, now, now))
 
-	frappe.db.commit()
+		# Commit each trip individually so partial data survives a later error.
+		frappe.db.commit()
 	print("  ✅ Created 7 Delivery Trips with delivery stops")
 
 	# ── 4. Trip Cost Reconciliation (for Cost Per Delivery chart) ──────
