@@ -24,8 +24,12 @@ def execute():
 	"""
 	frappe.set_user("Administrator")
 
-	if frappe.db.exists("Transporter", DEMO_MARKER_TRANSPORTER):
-		print(f"Demo data already present (Transporter '{DEMO_MARKER_TRANSPORTER}' exists). Skipping.")
+	# Only skip if BOTH the marker Transporter AND the Customers exist.
+	# The old scripts created Transporters via raw SQL but never created
+	# Customers, so checking only the Transporter would incorrectly skip
+	# the new script's fuller data set.
+	if frappe.db.exists("Transporter", DEMO_MARKER_TRANSPORTER) and frappe.db.exists("Customer", "Raj Electronics"):
+		print(f"Demo data already present (Transporter '{DEMO_MARKER_TRANSPORTER}' and Customers exist). Skipping.")
 		return
 
 	warehouse = _get_warehouse()
