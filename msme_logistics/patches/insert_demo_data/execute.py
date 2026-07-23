@@ -3,8 +3,6 @@ from __future__ import unicode_literals
 import frappe
 from frappe.utils import add_days, now_datetime, nowdate
 
-from msme_logistics.logistics.doctype.delivery_stop.delivery_stop import DeliveryStop
-
 # Existence of this Transporter is used as the "already seeded" marker,
 # so the script is safe to re-run without creating duplicates.
 DEMO_MARKER_TRANSPORTER = "FastTrack Logistics"
@@ -251,15 +249,15 @@ def _create_delivery_trips(transporters, customers, warehouse):
 		doc.trip_date = day(t["days_ago"])
 		doc.planned_dispatch_date = day(t["days_ago"])
 
-		# Always start with "Planned" to match the initial workflow state,
-		# bypassing workflow transition validation entirely.
-		# After insert+submit we set the final trip_status directly via
-		# frappe.db.set_value() which skips document-level validation.
+		# Use a safe intermediate status at insert time -- "Completed" would
+		# trigger the app's POD-image validation (validate_pod_on_completion),
+		# which we deliberately bypass below via a direct field update since
+		# this is seed/demo data, not a real driver-completed trip.
 		final_status = t["target_status"]
-		doc.trip_status = "Planned"
+		doc.trip_status = "In Transit" if final_status in ("Completed", "Reconciled") else final_status
 
 		for seq, customer, address, ws, we, status, arrival_dt in t["stops"]:
-			stop = doc.append("delivery_stops", {
+			doc.append("delivery_stops", {
 				"sequence_no": seq,
 				"customer": customer,
 				"address": address,
@@ -269,23 +267,17 @@ def _create_delivery_trips(transporters, customers, warehouse):
 				"actual_arrival_time": arrival_dt,
 			})
 
-			# Explicitly generate and set tracking ID.
-			# Child-table before_insert may not fire reliably when rows are
-			# appended before the parent is saved, so we set it here directly.
-			stop.tracking_id = DeliveryStop.generate_tracking_id()
-
 		doc.flags.ignore_permissions = True
 		doc.insert()
 
 		if final_status != "Planned":
 			doc.submit()
 
-		# Set the final trip_status via direct DB update to bypass both the
-		# POD-validation (for Completed) and workflow transition rules.
-		updates = {"trip_status": final_status}
-		if final_status == "Completed":
-			updates["completed_time"] = arrival(t["days_ago"], 16, 0)
-		frappe.db.set_value("Delivery Trip", doc.name, updates)
+		if final_status in ("Completed", "Reconciled"):
+			updates = {"trip_status": final_status}
+			if final_status == "Completed":
+				updates["completed_time"] = arrival(t["days_ago"], 16, 0)
+			frappe.db.set_value("Delivery Trip", doc.name, updates)
 
 		created.append(doc.name)
 		print(f"Created Delivery Trip: {doc.name} ({t['transporter']}, {final_status})")
