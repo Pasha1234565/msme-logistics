@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 import frappe
 from frappe.utils import today, add_days, now_datetime
 
+from msme_logistics.logistics.doctype.delivery_stop.delivery_stop import DeliveryStop
+
 
 def execute():
 	"""Insert comprehensive demo data for SLA Compliance & Cost Per Delivery charts."""
@@ -15,6 +17,14 @@ def execute():
 		return
 
 	print("Inserting comprehensive demo data...")
+
+	# ── 0. Customer Group & Territory defaults ──────────────────────────
+	customer_group = frappe.db.get_value("Customer Group", {"is_group": 0}, "name") or frappe.db.get_value(
+		"Customer Group", {}, "name"
+	)
+	territory = frappe.db.get_value("Territory", {"is_group": 0}, "name") or frappe.db.get_value(
+		"Territory", {}, "name"
+	)
 
 	# ── 1. Transporters (skip if already exist from previous patches) ──
 	transporters = [
@@ -70,6 +80,28 @@ def execute():
 
 	frappe.db.commit()
 	print("  ✅ Transporters ready (new + existing)")
+
+	# ── 1b. Customers ────────────────────────────────────────────────────
+	customer_names = [
+		"Raj Electronics", "Priya Traders", "Delhi Mart", "NewGen Electronics",
+		"Goyal Stationers", "TechHub Solutions", "GreenLeaf Organics", "QuickFix Services",
+		"Metro Supplies", "Crystal Clear Waters", "FreshFarms Produce", "SmartOffice Solutions",
+		"Bharat Industrials", "Coastal Exports", "WestEnd Retail", "NewAge Retail",
+	]
+	for c in customer_names:
+		if frappe.db.exists("Customer", c):
+			continue
+		frappe.db.sql("""
+			INSERT INTO `tabCustomer`
+				(name, customer_name, customer_type, customer_group, territory,
+				 creation, modified, modified_by, owner, docstatus, idx)
+			VALUES
+				(%s, %s, 'Company', %s, %s,
+				 %s, %s, 'Administrator', 'Administrator', 0, 0)
+		""", (c, c, customer_group, territory, now, now))
+		print(f"  ✅ Created Customer: {c}")
+	frappe.db.commit()
+	print(f"  ✅ {len(customer_names)} Customers ready (new + existing)")
 
 	# ── 2. Warehouse ─────────────────────────────────────────────────────
 	warehouse = frappe.db.get_value("Warehouse", {"is_group": 0, "disabled": 0}, "name")
@@ -178,20 +210,23 @@ def execute():
 			t["dispatch_time"], now, now))
 
 		for seq, cust, addr, ws, we, status, arrival in t["stops"]:
+			tracking_id = DeliveryStop.generate_tracking_id()
 			frappe.db.sql("""
 				INSERT INTO `tabDelivery Stop`
 					(name, parent, parenttype, parentfield, idx,
 					 sequence_no, customer, address,
 					 delivery_window_start, delivery_window_end,
 					 status, actual_arrival_time,
+					 tracking_id,
 					 creation, modified, modified_by, owner, docstatus)
 				VALUES
 					(%s, %s, 'Delivery Trip', 'delivery_stops', %s,
 					 %s, %s, %s, %s, %s,
 					 %s, %s,
+					 %s,
 					 %s, %s, 'Administrator', 'Administrator', 0)
 			""", (frappe.generate_hash("", 10), t["name"], seq, seq, cust, addr,
-				ws, we, status, arrival, now, now))
+				ws, we, status, arrival, tracking_id, now, now))
 
 	frappe.db.commit()
 	print("  ✅ Created 7 Delivery Trips with delivery stops")
