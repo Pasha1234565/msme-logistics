@@ -253,8 +253,6 @@ def _create_delivery_trips(transporters, customers, warehouse):
 
 		# Always start with "Planned" to match the initial workflow state,
 		# bypassing workflow transition validation entirely.
-		# After insert+submit we set the final trip_status directly via
-		# frappe.db.set_value() which skips document-level validation.
 		final_status = t["target_status"]
 		doc.trip_status = "Planned"
 
@@ -270,25 +268,47 @@ def _create_delivery_trips(transporters, customers, warehouse):
 			})
 
 			# Explicitly generate and set tracking ID.
-			# Child-table before_insert may not fire reliably when rows are
-			# appended before the parent is saved, so we set it here directly.
 			stop.tracking_id = DeliveryStop.generate_tracking_id()
 
 		doc.flags.ignore_permissions = True
 		doc.insert()
 
+		# ═══════════════════════════════════════════════════════════════════
+		# Bypass doc.submit() entirely!
+		#
+		# Delivery Trip has an active workflow (Planned → Dispatched →
+		# In Transit → Completed → Reconciled), and Frappe's workflow
+		# system restricts submit() from any state. Calling doc.submit()
+		# either throws an error or silently fails to set docstatus=1.
+		#
+		# Instead, we use direct SQL to set both docstatus and trip_status
+		# in one shot, bypassing ALL hooks, workflow rules, and POD
+		# validation. This is demo/seed data, not real operational data.
+		# ═══════════════════════════════════════════════════════════════════
 		if final_status != "Planned":
-			doc.submit()
-
-		# Set the final trip_status via direct DB update to bypass both the
-		# POD-validation (for Completed) and workflow transition rules.
-		updates = {"trip_status": final_status}
-		if final_status == "Completed":
-			updates["completed_time"] = arrival(t["days_ago"], 16, 0)
-		frappe.db.set_value("Delivery Trip", doc.name, updates)
+			frappe.db.sql("""
+				UPDATE `tabDelivery Trip`
+				SET docstatus = 1,
+					trip_status = %s,
+					completed_time = %s
+				WHERE name = %s
+			""", (
+				final_status,
+				arrival(t["days_ago"], 16, 0) if final_status == "Completed" else None,
+				doc.name,
+			))
+		else:
+			frappe.db.sql("""
+				UPDATE `tabDelivery Trip`
+				SET trip_status = %s
+				WHERE name = %s
+			""", (final_status, doc.name))
 
 		created.append(doc.name)
 		print(f"Created Delivery Trip: {doc.name} ({t['transporter']}, {final_status})")
+
+		# Commit after each trip so partial data survives errors on later trips.
+		frappe.db.commit()
 
 	return created
 
