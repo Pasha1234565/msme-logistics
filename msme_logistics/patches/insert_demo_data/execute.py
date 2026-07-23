@@ -432,7 +432,11 @@ def _print_banner():
 def _print_success():
 	print()
 	print("=" * 60)
-	print("  ✅ ALL DEMO DATA INSERTED SUCCESSFULLY")
+	print("████████████████████████████████████████████████████████████████")
+	print("██                                                          ██")
+	print("██           ✅  DEMO DATA INSERTED SUCCESSFULLY            ██")
+	print("██                                                          ██")
+	print("████████████████████████████████████████████████████████████████")
 	print("=" * 60)
 	print()
 	print("  What was created:")
@@ -447,3 +451,4 @@ def _print_success():
 	print("    3. Check Cost Per Delivery by Transporter chart")
 	print("    4. Visit /track?id=<tracking_id> for customer tracking")
 	print()
+	print("=" * 60)
