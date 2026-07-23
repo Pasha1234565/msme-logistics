@@ -1,224 +1,312 @@
 from __future__ import unicode_literals
 
 import frappe
-from frappe.utils import today, add_days, now_datetime
+from frappe.utils import add_days, now_datetime, nowdate
+
+# Existence of this Transporter is used as the "already seeded" marker,
+# so the script is safe to re-run without creating duplicates.
+DEMO_MARKER_TRANSPORTER = "FastTrack Logistics"
 
 
 def execute():
-	"""Insert comprehensive demo data for SLA Compliance & Cost Per Delivery charts."""
-	now = now_datetime()
-	today_date = today()
+	"""Insert demo data for the msme_logistics app.
 
-	# ── Skip if data already exists ──────────────────────────────────────
-	if frappe.db.exists("Delivery Trip", "DT-DEMO-0001"):
-		print("✅ Demo data already exists, skipping")
+	Creates Transporters, Customers, and Delivery Trips (with Delivery Stops)
+	spread across the last ~10 days with a realistic mix of on-time, late,
+	failed, and pending deliveries -- so the "SLA Compliance by Transporter"
+	report/chart on the MSME workspace has real bars instead of "No Data".
+	Also creates Trip Cost Reconciliation records so the "Cost Per Delivery
+	by Transporter" chart and the "Avg Cost Per Stop" number card populate.
+
+	Run via bench (do NOT pipe into bench console):
+
+		bench --site <your-site-name> execute msme_logistics.patches.insert_demo_data.execute
+	"""
+	frappe.set_user("Administrator")
+
+	if frappe.db.exists("Transporter", DEMO_MARKER_TRANSPORTER):
+		print(f"Demo data already present (Transporter '{DEMO_MARKER_TRANSPORTER}' exists). Skipping.")
 		return
 
-	print("Inserting comprehensive demo data...")
+	warehouse = _get_warehouse()
+	customer_group, territory = _get_customer_defaults()
 
-	# ── 1. Transporters (skip if already exist from previous patches) ──
-	transporters = [
-		("FastTrack Logistics", "Active",   "info@fasttrack.in",     "+91-9876543210"),
-		("CityExpress Couriers", "Active",  "dispatch@cityexpress.com", "+91-9876543211"),
-		("SafeHands Transport", "Active",   "ops@safehands.in",      "+91-9876543212"),
-		("RapidMove Services", "Inactive",  "contact@rapidmove.com", "+91-9876543213"),
-	]
-	for name, status, email, phone in transporters:
-		if frappe.db.exists("Transporter", name):
-			print(f"  ℹ️  Transporter '{name}' already exists, skipping")
-			continue
-		frappe.db.sql("""
-			INSERT INTO `tabTransporter`
-				(name, transporter_name, status, email, phone,
-				 creation, modified, modified_by, owner, docstatus, idx)
-			VALUES
-				(%s, %s, %s, %s, %s, %s, %s, 'Administrator', 'Administrator', 0, 0)
-		""", (name, name, status, email, phone, now, now))
-		print(f"  ✅ Created Transporter: {name}")
-
-		# Vehicle types
-		vtypes = {
-			"FastTrack Logistics": [("Tata Ace", 750, 12.00), ("Ashok Leyland", 2000, 18.50)],
-			"CityExpress Couriers": [("Pickup Van", 500, 10.00)],
-			"SafeHands Transport": [("Truck 6-Tyre", 5000, 25.00)],
-		}
-		for idx, (vt, cap, rate) in enumerate(vtypes.get(name, []), 1):
-			frappe.db.sql("""
-				INSERT INTO `tabTransporter Vehicle Type`
-					(name, parent, parenttype, parentfield, idx,
-					 vehicle_type, capacity_kg, rate_per_km,
-					 creation, modified, modified_by, owner, docstatus)
-				VALUES (%s, %s, 'Transporter', 'vehicle_types', %s,
-					%s, %s, %s, %s, %s, 'Administrator', 'Administrator', 0)
-			""", (frappe.generate_hash("", 10), name, idx, vt, cap, rate, now, now))
-
-		# Service areas
-		areas = {
-			"FastTrack Logistics": [("110001", "110099"), ("201301", "201310")],
-			"CityExpress Couriers": [("110001", "110050")],
-			"SafeHands Transport": [("400001", "400099")],
-		}
-		for idx, (frm, to) in enumerate(areas.get(name, []), 1):
-			frappe.db.sql("""
-				INSERT INTO `tabTransporter Service Area`
-					(name, parent, parenttype, parentfield, idx,
-					 pincode_from, pincode_to,
-					 creation, modified, modified_by, owner, docstatus)
-				VALUES (%s, %s, 'Transporter', 'service_areas', %s,
-					%s, %s, %s, %s, 'Administrator', 'Administrator', 0)
-			""", (frappe.generate_hash("", 10), name, idx, frm, to, now, now))
+	transporters = _create_transporters()
+	customers = _create_customers(customer_group, territory)
+	trips = _create_delivery_trips(transporters, customers, warehouse)
+	_create_trip_cost_reconciliations(trips)
 
 	frappe.db.commit()
-	print("  ✅ Transporters ready (new + existing)")
+	print("\n✅ Demo data created successfully.")
+	print("   Refresh the MSME workspace to see the SLA Compliance chart populate.")
 
-	# ── 2. Warehouse ─────────────────────────────────────────────────────
+
+def _get_warehouse():
 	warehouse = frappe.db.get_value("Warehouse", {"is_group": 0, "disabled": 0}, "name")
+	if not warehouse:
+		frappe.throw(
+			"No usable Warehouse found. Please finish basic ERPNext setup "
+			"(Company + at least one Warehouse) before running this script."
+		)
+	return warehouse
 
-	# ── 3. Delivery Trips with Stops ─────────────────────────────────────
-	ft = "FastTrack Logistics"
-	ce = "CityExpress Couriers"
-	sh = "SafeHands Transport"
 
-	# Helper to build arrival datetime
+def _get_customer_defaults():
+	customer_group = frappe.db.get_value("Customer Group", {"is_group": 0}, "name") or frappe.db.get_value(
+		"Customer Group", {}, "name"
+	)
+	territory = frappe.db.get_value("Territory", {"is_group": 0}, "name") or frappe.db.get_value(
+		"Territory", {}, "name"
+	)
+	if not customer_group or not territory:
+		frappe.throw(
+			"No Customer Group / Territory found. Please complete basic ERPNext "
+			"setup (Selling module) before running this script."
+		)
+	return customer_group, territory
+
+
+def _create_transporters():
+	data = [
+		{
+			"transporter_name": "FastTrack Logistics",
+			"status": "Active",
+			"email": "info@fasttrack.in",
+			"phone": "+91-9876543210",
+			"vehicle_types": [("Tata Ace", 750, 12.0), ("Ashok Leyland", 2000, 18.5)],
+			"service_areas": [("110001", "110099"), ("201301", "201310")],
+		},
+		{
+			"transporter_name": "CityExpress Couriers",
+			"status": "Active",
+			"email": "dispatch@cityexpress.com",
+			"phone": "+91-9876543211",
+			"vehicle_types": [("Pickup Van", 500, 10.0)],
+			"service_areas": [("110001", "110050")],
+		},
+		{
+			"transporter_name": "SafeHands Transport",
+			"status": "Active",
+			"email": "ops@safehands.in",
+			"phone": "+91-9876543212",
+			"vehicle_types": [("Truck 6-Tyre", 5000, 25.0)],
+			"service_areas": [("400001", "400099")],
+		},
+		{
+			"transporter_name": "RapidMove Services",
+			"status": "Inactive",
+			"email": "contact@rapidmove.com",
+			"phone": "+91-9876543213",
+			"vehicle_types": [],
+			"service_areas": [],
+		},
+	]
+
+	names = []
+	for t in data:
+		if frappe.db.exists("Transporter", t["transporter_name"]):
+			names.append(t["transporter_name"])
+			continue
+
+		doc = frappe.new_doc("Transporter")
+		doc.transporter_name = t["transporter_name"]
+		doc.status = t["status"]
+		doc.email = t["email"]
+		doc.phone = t["phone"]
+		for vt, cap, rate in t["vehicle_types"]:
+			doc.append("vehicle_types", {"vehicle_type": vt, "capacity_kg": cap, "rate_per_km": rate})
+		for frm, to in t["service_areas"]:
+			doc.append("service_areas", {"pincode_from": frm, "pincode_to": to})
+		doc.flags.ignore_permissions = True
+		doc.insert()
+		names.append(doc.name)
+		print(f"Created Transporter: {doc.name}")
+
+	return names
+
+
+def _create_customers(customer_group, territory):
+	names = [
+		"Raj Electronics", "Priya Traders", "Delhi Mart", "NewGen Electronics",
+		"Goyal Stationers", "TechHub Solutions", "GreenLeaf Organics", "QuickFix Services",
+		"Metro Supplies", "Crystal Clear Waters", "FreshFarms Produce", "SmartOffice Solutions",
+		"Bharat Industrials", "Coastal Exports", "WestEnd Retail", "NewAge Retail",
+	]
+	for n in names:
+		if frappe.db.exists("Customer", n):
+			continue
+		doc = frappe.new_doc("Customer")
+		doc.customer_name = n
+		doc.customer_type = "Company"
+		doc.customer_group = customer_group
+		doc.territory = territory
+		doc.flags.ignore_permissions = True
+		doc.insert()
+	return names
+
+
+def _create_delivery_trips(transporters, customers, warehouse):
+	ft, ce, sh, rm = transporters[0], transporters[1], transporters[2], transporters[3]
+
 	def arrival(days_ago, hour, minute):
-		return add_days(now, -days_ago).replace(hour=hour, minute=minute, second=0, microsecond=0)
+		return add_days(now_datetime(), -days_ago).replace(hour=hour, minute=minute, second=0, microsecond=0)
 
+	def day(days_ago):
+		return add_days(nowdate(), -days_ago)
+
+	# Each trip dict:
+	#   transporter, driver, vehicle, total_distance_km, days_ago (trip/dispatch date),
+	#   target_status (final trip_status shown to the user),
+	#   stops: (seq, customer, address, window_start, window_end, status, actual_arrival_datetime_or_None)
 	trips = [
-		# FastTrack: 2 completed + 1 in-transit
 		{
-			"name": "DT-DEMO-0001", "transporter": ft, "driver": "Rajesh Kumar",
-			"vehicle": "DL-01-AB-1234", "status": "Completed",
-			"trip_date": add_days(today_date, -5), "dispatch": add_days(today_date, -5),
-			"dispatch_time": arrival(5, 8, 0),
+			"transporter": ft, "driver": "Rajesh Kumar", "vehicle": "DL-01-AB-1234",
+			"total_distance_km": 42.5, "days_ago": 5, "target_status": "Completed",
 			"stops": [
-				(1, "Raj Electronics",      "12, MG Road, Delhi - 110001",       "09:00:00", "11:00:00", "Delivered", arrival(5, 9, 15)),
-				(2, "Priya Traders",        "45, Lajpat Nagar, Delhi - 110024",  "11:00:00", "12:00:00", "Delivered", arrival(5, 11, 45)),
-				(3, "Delhi Mart",           "78, Connaught Place, Delhi - 110001","13:00:00", "14:00:00", "Delivered", arrival(5, 14, 30)),
+				(1, customers[0], "12, MG Road, Delhi - 110001", "09:00:00", "11:00:00", "Delivered", arrival(5, 9, 15)),
+				(2, customers[1], "45, Lajpat Nagar, Delhi - 110024", "11:00:00", "12:00:00", "Delivered", arrival(5, 11, 45)),
+				(3, customers[2], "78, Connaught Place, Delhi - 110001", "13:00:00", "14:00:00", "Delivered", arrival(5, 15, 30)),
 			],
 		},
 		{
-			"name": "DT-DEMO-0002", "transporter": ft, "driver": "Rajesh Kumar",
-			"vehicle": "DL-01-AB-1234", "status": "Completed",
-			"trip_date": add_days(today_date, -3), "dispatch": add_days(today_date, -3),
-			"dispatch_time": arrival(3, 8, 0),
+			"transporter": ft, "driver": "Rajesh Kumar", "vehicle": "DL-01-AB-1234",
+			"total_distance_km": 28.0, "days_ago": 3, "target_status": "Completed",
 			"stops": [
-				(1, "NewGen Electronics",  "101, Sector 18, Noida - 201301",  "09:30:00", "10:30:00", "Delivered", arrival(3, 10, 0)),
-				(2, "Goyal Stationers",    "55, Sector 12, Noida - 201301",   "11:00:00", "12:00:00", "Delivered", arrival(3, 11, 30)),
+				(1, customers[3], "101, Sector 18, Noida - 201301", "09:30:00", "10:30:00", "Delivered", arrival(3, 10, 0)),
+				(2, customers[4], "55, Sector 12, Noida - 201301", "11:00:00", "12:00:00", "Delivered", arrival(3, 11, 30)),
 			],
 		},
 		{
-			"name": "DT-DEMO-0003", "transporter": ft, "driver": "Suresh Singh",
-			"vehicle": "DL-01-CD-5678", "status": "In Transit",
-			"trip_date": add_days(today_date, -1), "dispatch": add_days(today_date, -1),
-			"dispatch_time": arrival(1, 7, 0),
+			"transporter": ft, "driver": "Suresh Singh", "vehicle": "DL-01-CD-5678",
+			"total_distance_km": 35.2, "days_ago": 1, "target_status": "In Transit",
 			"stops": [
-				(1, "TechHub Solutions",  "202, Cyber City, Gurgaon - 122002","08:00:00", "10:00:00", "Delivered", arrival(1, 9, 30)),
-				(2, "GreenLeaf Organics", "88, MG Road, Gurgaon - 122001",   "10:30:00", "12:00:00", "Delivered", arrival(1, 13, 15)),
-				(3, "QuickFix Services",  "15, Industrial Area, Delhi - 110020","14:00:00","16:00:00", "Pending",   None),
-			],
-		},
-		# CityExpress: 2 completed
-		{
-			"name": "DT-DEMO-0004", "transporter": ce, "driver": "Amit Sharma",
-			"vehicle": "UP-14-EF-9012", "status": "Completed",
-			"trip_date": add_days(today_date, -4), "dispatch": add_days(today_date, -4),
-			"dispatch_time": arrival(4, 9, 0),
-			"stops": [
-				(1, "Metro Supplies",      "67, Karol Bagh, Delhi - 110005",  "10:00:00", "11:30:00", "Delivered", arrival(4, 10, 45)),
-				(2, "Crystal Clear Waters","34, Patel Nagar, Delhi - 110008", "12:00:00", "13:00:00", "Failed",    None),
+				(1, customers[5], "202, Cyber City, Gurgaon - 122002", "08:00:00", "10:00:00", "Delivered", arrival(1, 9, 30)),
+				(2, customers[6], "88, MG Road, Gurgaon - 122001", "10:30:00", "12:00:00", "Delivered", arrival(1, 11, 45)),
+				(3, customers[7], "15, Industrial Area, Delhi - 110020", "14:00:00", "16:00:00", "Pending", None),
 			],
 		},
 		{
-			"name": "DT-DEMO-0005", "transporter": ce, "driver": "Vikram Yadav",
-			"vehicle": "UP-14-GH-3456", "status": "Completed",
-			"trip_date": add_days(today_date, -2), "dispatch": add_days(today_date, -2),
-			"dispatch_time": arrival(2, 8, 30),
+			"transporter": ce, "driver": "Amit Sharma", "vehicle": "UP-14-EF-9012",
+			"total_distance_km": 19.5, "days_ago": 4, "target_status": "Completed",
 			"stops": [
-				(1, "FreshFarms Produce",  "22, Model Town, Delhi - 110009",  "09:00:00", "10:00:00", "Delivered", arrival(2, 9, 30)),
-				(2, "SmartOffice Solutions","11, Rajendra Place, Delhi - 110008","10:30:00","12:00:00","Delivered", arrival(2, 11, 15)),
+				(1, customers[8], "67, Karol Bagh, Delhi - 110005", "10:00:00", "11:30:00", "Delivered", arrival(4, 13, 45)),
+				(2, customers[9], "34, Patel Nagar, Delhi - 110008", "12:00:00", "13:00:00", "Failed", None),
 			],
 		},
-		# SafeHands: 1 completed (all late)
 		{
-			"name": "DT-DEMO-0006", "transporter": sh, "driver": "Mohan Lal",
-			"vehicle": "HR-26-XY-7890", "status": "Completed",
-			"trip_date": add_days(today_date, -6), "dispatch": add_days(today_date, -6),
-			"dispatch_time": arrival(6, 6, 0),
+			"transporter": ce, "driver": "Vikram Yadav", "vehicle": "UP-14-GH-3456",
+			"total_distance_km": 22.1, "days_ago": 2, "target_status": "Completed",
 			"stops": [
-				(1, "Bharat Industrials", "88, MIDC, Andheri, Mumbai - 400093","08:00:00","09:00:00","Delivered", arrival(6, 9, 45)),
-				(2, "Coastal Exports",    "12, Fort Area, Mumbai - 400001",   "10:00:00","11:00:00","Delivered", arrival(6, 12, 10)),
-				(3, "WestEnd Retail",     "45, Linking Road, Mumbai - 400054","12:00:00","13:00:00","Delivered", arrival(6, 14, 0)),
+				(1, customers[10], "22, Model Town, Delhi - 110009", "09:00:00", "10:00:00", "Delivered", arrival(2, 9, 30)),
+				(2, customers[11], "11, Rajendra Place, Delhi - 110008", "10:30:00", "12:00:00", "Delivered", arrival(2, 11, 15)),
 			],
 		},
-		# Planned trip
 		{
-			"name": "DT-DEMO-0007", "transporter": ce, "driver": "Amit Sharma",
-			"vehicle": "UP-14-EF-9012", "status": "Planned",
-			"trip_date": today_date, "dispatch": today_date,
-			"dispatch_time": None,
+			"transporter": ce, "driver": "Amit Sharma", "vehicle": "UP-14-EF-9012",
+			"total_distance_km": 12.0, "days_ago": 0, "target_status": "Planned",
 			"stops": [
-				(1, "NewAge Retail", "5, Sector 62, Noida - 201309", "10:00:00","12:00:00","Pending", None),
+				(1, customers[15], "5, Sector 62, Noida - 201309", "10:00:00", "12:00:00", "Pending", None),
+			],
+		},
+		{
+			"transporter": sh, "driver": "Mohan Lal", "vehicle": "HR-26-XY-7890",
+			"total_distance_km": 51.0, "days_ago": 6, "target_status": "Completed",
+			"stops": [
+				(1, customers[12], "88, MIDC, Andheri, Mumbai - 400093", "08:00:00", "09:00:00", "Delivered", arrival(6, 9, 45)),
+				(2, customers[13], "12, Fort Area, Mumbai - 400001", "10:00:00", "11:00:00", "Delivered", arrival(6, 12, 10)),
+				(3, customers[14], "45, Linking Road, Mumbai - 400054", "12:00:00", "13:00:00", "Delivered", arrival(6, 14, 0)),
+			],
+		},
+		{
+			"transporter": sh, "driver": "Mohan Lal", "vehicle": "HR-26-XY-7890",
+			"total_distance_km": 33.4, "days_ago": 8, "target_status": "Reconciled",
+			"stops": [
+				(1, customers[12], "88, MIDC, Andheri, Mumbai - 400093", "08:00:00", "09:00:00", "Delivered", arrival(8, 8, 40)),
+				(2, customers[13], "12, Fort Area, Mumbai - 400001", "10:00:00", "11:00:00", "Delivered", arrival(8, 10, 50)),
+			],
+		},
+		{
+			"transporter": rm, "driver": "Naresh Gupta", "vehicle": "MH-04-KL-2468",
+			"total_distance_km": 15.0, "days_ago": 1, "target_status": "Dispatched",
+			"stops": [
+				(1, customers[9], "34, Patel Nagar, Delhi - 110008", "09:00:00", "11:00:00", "Pending", None),
 			],
 		},
 	]
 
+	created = []
 	for t in trips:
-		frappe.db.sql("""
-			INSERT INTO `tabDelivery Trip`
-				(name, naming_series, transporter, driver_name, vehicle_no,
-				 origin_warehouse, trip_status, trip_date, planned_dispatch_date,
-				 actual_dispatch_time, docstatus,
-				 creation, modified, modified_by, owner, idx)
-			VALUES
-				(%s, 'DT-DEMO-', %s, %s, %s,
-				 %s, %s, %s, %s, %s, 1,
-				 %s, %s, 'Administrator', 'Administrator', 0)
-		""", (t["name"], t["transporter"], t["driver"], t["vehicle"],
-			warehouse or "", t["status"], t["trip_date"], t["dispatch"],
-			t["dispatch_time"], now, now))
+		doc = frappe.new_doc("Delivery Trip")
+		doc.transporter = t["transporter"]
+		doc.driver_name = t["driver"]
+		doc.vehicle_no = t["vehicle"]
+		doc.origin_warehouse = warehouse
+		doc.total_distance_km = t["total_distance_km"]
+		doc.trip_date = day(t["days_ago"])
+		doc.planned_dispatch_date = day(t["days_ago"])
 
-		for seq, cust, addr, ws, we, status, arrival in t["stops"]:
-			frappe.db.sql("""
-				INSERT INTO `tabDelivery Stop`
-					(name, parent, parenttype, parentfield, idx,
-					 sequence_no, customer, address,
-					 delivery_window_start, delivery_window_end,
-					 status, actual_arrival_time,
-					 creation, modified, modified_by, owner, docstatus)
-				VALUES
-					(%s, %s, 'Delivery Trip', 'delivery_stops', %s,
-					 %s, %s, %s, %s, %s,
-					 %s, %s,
-					 %s, %s, 'Administrator', 'Administrator', 0)
-			""", (frappe.generate_hash("", 10), t["name"], seq, seq, cust, addr,
-				ws, we, status, arrival, now, now))
+		# Use a safe intermediate status at insert time -- "Completed" would
+		# trigger the app's POD-image validation (validate_pod_on_completion),
+		# which we deliberately bypass below via a direct field update since
+		# this is seed/demo data, not a real driver-completed trip.
+		final_status = t["target_status"]
+		doc.trip_status = "In Transit" if final_status in ("Completed", "Reconciled") else final_status
 
-	frappe.db.commit()
-	print("  ✅ Created 7 Delivery Trips with delivery stops")
+		for seq, customer, address, ws, we, status, arrival_dt in t["stops"]:
+			doc.append("delivery_stops", {
+				"sequence_no": seq,
+				"customer": customer,
+				"address": address,
+				"delivery_window_start": ws,
+				"delivery_window_end": we,
+				"status": status,
+				"actual_arrival_time": arrival_dt,
+			})
 
-	# ── 4. Trip Cost Reconciliation (for Cost Per Delivery chart) ──────
-	completed = frappe.db.sql(
-		"SELECT name, transporter FROM `tabDelivery Trip` WHERE trip_status = 'Completed'",
-		as_dict=True,
-	)
-	cost_map = {"FastTrack Logistics": (1500, 3000), "SafeHands Transport": (2200, 4800)}
-	for idx, trip in enumerate(completed, 1):
+		doc.flags.ignore_permissions = True
+		doc.insert()
+
+		if final_status != "Planned":
+			doc.submit()
+
+		if final_status in ("Completed", "Reconciled"):
+			updates = {"trip_status": final_status}
+			if final_status == "Completed":
+				updates["completed_time"] = arrival(t["days_ago"], 16, 0)
+			frappe.db.set_value("Delivery Trip", doc.name, updates)
+
+		created.append(doc.name)
+		print(f"Created Delivery Trip: {doc.name} ({t['transporter']}, {final_status})")
+
+	return created
+
+
+def _create_trip_cost_reconciliations(trip_names):
+	cost_map = {
+		"FastTrack Logistics": (1500, 3000),
+		"SafeHands Transport": (2200, 4800),
+	}
+	count = 0
+	for name in trip_names:
+		trip = frappe.db.get_value("Delivery Trip", name, ["transporter", "trip_status"], as_dict=True)
+		if trip.trip_status not in ("Completed", "Reconciled"):
+			continue
+		if frappe.db.exists("Trip Cost Reconciliation", {"delivery_trip": name}):
+			continue
+
 		fuel, payout = cost_map.get(trip.transporter, (1200, 2500))
-		stops = frappe.db.count("Delivery Stop", {"parenttype": "Delivery Trip", "parent": trip.name})
-		cps = round((fuel + payout) / stops, 2) if stops else 0
-		frappe.db.sql("""
-			INSERT INTO `tabTrip Cost Reconciliation`
-				(name, naming_series, delivery_trip, reconciliation_date,
-				 fuel_cost, transporter_payout, total_stops, cost_per_stop,
-				 creation, modified, modified_by, owner, docstatus, idx)
-			VALUES
-				(%s, 'TCR-DEMO-', %s, %s,
-				 %s, %s, %s, %s,
-				 %s, %s, 'Administrator', 'Administrator', 0, 0)
-		""", (f"TCR-DEMO-{idx:04d}", trip.name, today(), fuel, payout, stops, cps, now, now))
+		total_stops = frappe.db.count("Delivery Stop", {"parenttype": "Delivery Trip", "parent": name})
+		cost_per_stop = round((fuel + payout) / total_stops, 2) if total_stops else 0
 
-	frappe.db.commit()
-	print(f"  ✅ Created {len(completed)} Trip Cost Reconciliation records")
+		doc = frappe.new_doc("Trip Cost Reconciliation")
+		doc.delivery_trip = name
+		doc.reconciliation_date = nowdate()
+		doc.fuel_cost = fuel
+		doc.transporter_payout = payout
+		doc.total_stops = total_stops
+		doc.cost_per_stop = cost_per_stop
+		doc.flags.ignore_permissions = True
+		doc.insert()
+		count += 1
 
-	print("✅ Comprehensive demo data inserted successfully!")
-	print("   Refresh the MSME workspace to see charts with data.")
+	print(f"Created {count} Trip Cost Reconciliation record(s)")
