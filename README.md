@@ -1,142 +1,120 @@
-# 🧵 Textile Tracking & Job Work Management
+# 🚚 MSME Logistics — B2B Last-Mile Delivery Management
 
-A comprehensive **Frappe/ERPNext** application for textile and garment manufacturers to manage end-to-end **job work operations**, contractor management, fabric traceability, cutting optimization, and wastage analytics. Built for textile mills, garment manufacturers, and production houses.
+A comprehensive **Frappe/ERPNext** application for **MSME (Micro, Small & Medium Enterprise) B2B logistics operators** to manage last-mile delivery operations, transporter management, delivery trip tracking, SLA compliance monitoring, and cost reconciliation. Built for logistics companies, 3PL operators, and distribution businesses.
 
 ## 📋 Overview
 
-This application provides a complete digital solution for managing the lifecycle of textile production sent to external contractors — from raw material procurement and fabric roll tracking through job work orders, cutting plans, production scheduling, and wastage analysis. It includes robust reporting, a Digital Product Passport for EU 2027 compliance, a factory floor dashboard, and a supplier collaboration portal.
+This application provides a complete digital solution for managing the lifecycle of B2B last-mile deliveries — from transporter registration and trip planning through real-time tracking, proof-of-delivery capture, SLA compliance monitoring, and cost reconciliation. It includes robust reporting, a customer-facing order tracking portal, and automated notifications.
 
-> 🔄 **Context**: This application was purpose-built for the textile and garment manufacturing industry, covering the full subcontracting workflow from raw material batch to finished fabric roll with full traceability.
+> 🔄 **Context**: This application was purpose-built for MSME logistics operators in the Indian market, covering the full delivery management workflow from dispatch planning to cost reconciliation with full trip traceability.
 
 ---
 
 ## ✨ Features
 
-### 🏭 Contractor Management
-- Register and manage **Job Contractors** with detailed profiles and rate cards
-- Categorize contractors by process type (Cutting, Stitching, Dyeing, Embroidery, Finishing)
-- Track contractor wastage analytics with auto-calculated aggregates
-- Rate card management with per-process pricing and effective dates
+### 🚛 Transporter Management
+- Register and manage **Transporters** with detailed profiles
+- Define **Vehicle Types** per transporter with capacity (kg) and rate per km
+- Configure **Service Areas** using pincode ranges (pincode_from → pincode_to)
+- Auto-calculated **SLA Compliance %** and **Total Trips** analytics (updated weekly)
+- Link to ERPNext **Supplier** master for accounting and payments
+- Configure **Default Transit Days** for ETA estimation
+- Validation: overlapping service area detection, duplicate vehicle type prevention
 
-### 📦 Job Work Orders
-- Create full **Job Work Orders** with multi-process tracking
-- Per-process contractor assignment, dates, and status tracking
-- Workflow-driven status (Draft → Sent → Partially Received → Received → Closed)
-- Automatic Stock Entry creation for material transfer and receipt (ERPNext integration)
-- Auto-populate processes based on garment type (Shirt, T-Shirt, Saree, Kurta, etc.)
-- Garment-type-specific process mapping (10 garment types supported)
+### 📦 Delivery Trip Management
+- Create **Delivery Trips** with multi-stop routing
+- Workflow-driven status: **Planned → Dispatched → In Transit → Completed → Reconciled**
+- Assign transporters, drivers, and vehicles per trip
+- Set per-stop **Delivery Windows** (time ranges with start/end)
+- Capture **Proof of Delivery (POD)** — image upload + signature per stop
+- Auto-record **Actual Dispatch Time** on submit
+- Auto-set **Actual Arrival Time** when stop status changes to Delivered
+- **POD enforcement**: Block completion if any delivered stop is missing POD image
+- Link to standard ERPNext **Delivery Notes** for accounting integration
 
-### ♻️ Fabric Wastage Management
-- **Fabric Wastage Log** with detailed cause categorization
-- Wastage categories: Cutting Loss, Contractor Damage, Transit Damage, Quality Reject
-- Real-time wastage percentage calculation
-- High-wastage alerts (>15%) with system notifications
-- Contractor-wise aggregated wastage analytics
+### 🔗 Customer-Facing Order Tracking
+- Public **/track** web page — no login required
+- Enter a 12-character tracking ID (**TRK-XXXXXXXX**) to see live status
+- Visual **4-step progress stepper**: Shipped → In Transit → Out for Delivery → Delivered
+- Color-coded failed delivery and rescheduled badges
+- **Current location** and **Estimated Delivery Date** display
+- Chronological **tracking timeline** with status, location, and timestamp
+- Auto-generated tracking IDs (secure, unique, collision-resistant)
+- **Rate-limited API** (10 req/min per IP) for abuse prevention
+- ETA derived from trip date + transporter's default transit days (prorated by stop sequence)
+- Logged failed lookups for security monitoring
 
-### 🧶 Raw Material Traceability
-- **Raw Material Batch** tracking with full origin details
-- Supplier batch number and country of origin tracking
-- Certification tracking (GOTS, OEKO-TEX, BCI, Fair Trade, Organic)
-- Storage location management with handling instructions
-- Trace forward to Fabric Rolls and Job Work Orders
+### 💰 Trip Cost Reconciliation
+- Reconcile fuel costs and transporter payouts per trip
+- Auto-calculate **Total Stops** and **Cost Per Stop** from linked delivery trip
+- Track reconciliation date and reconciling user
+- Feeds into **Cost Per Delivery** analytics and reports
 
-### 📜 Fabric Roll Management
-- Track fabric rolls with measurements, grade, and quality status
-- **Digital Product Passport** (EU 2027 compliant) with QR code generation
-- Daily production tracking per roll
-- Garment production estimates (fabric requirement per garment type/size)
-- Wastage percentage calculation from estimated vs actual production
-- Process history with chronological manufacturing timeline
+### 📊 Reports (3)
 
-### ✂️ Cutting Optimization
-- **Pattern Templates** with piece definitions and dimensions
-- **Cutting Plans** linked to fabric rolls
-- Estimated waste percentage per plan
-- Layout preview support for cutting optimization
-
-### 🏗️ Production Scheduling
-- **Production Schedule** with shift-based planning (Morning, Evening, Night)
-- Machine allocation to production items
-- Target meters and time-based scheduling
-- Status tracking (Draft → Planned → In Progress → Completed → Cancelled)
-
-### 🏭 Factory Floor Dashboard
-- Real-time loom/machine status visualization
-- Summary stats (Running, Idle, Down/Maintenance counts)
-- Per-machine metrics: meters produced today, RPM, efficiency, defect count
-- Today's production schedule overview
-- Responsive card-based UI with color-coded status indicators
-
-### 🔗 Supplier Collaboration Portal
-- Web-based portal for external suppliers
-- View and update delivery schedules
-- Revise delivery dates and status (Confirmed, Delayed, Shipped)
-- Stats dashboard (total deliveries, pending updates)
-- Secure login integration with Frappe authentication
-
-### 📊 Reports (5)
-
-| Report | Type | Description |
-|--------|------|-------------|
-| **Contractor Wastage Trend** | Query + Script | Wastage % trends per contractor over time with line chart |
-| **True Cost Per Piece by Contractor** | Script | Calculates real cost including labor + wastage cost with bar chart |
-| **Overdue Job Work Orders** | Query | All orders past expected return date, grouped by contractor |
-| **Cutting Efficiency** | Script | Cutting plan analysis with fabric usage, waste %, and bar chart |
-| **Lot Genealogy** | Script | Complete traceability tree from raw material batch to fabric rolls |
+| Report | Type | Description | Chart |
+|--------|------|-------------|-------|
+| **SLA Compliance by Transporter** | Script Report | On-time delivery compliance per transporter with % calculation | Bar chart |
+| **Cost Per Delivery by Transporter** | Query Report | Cost breakdown per trip with cost-per-stop analysis | Bar chart |
+| **Failed Delivery Rate by Area** | Query Report | Failed/rescheduled deliveries with pincode extraction | Pie chart |
 
 ### 🔔 Notifications & Automation
-- Daily contractor wastage stats update (scheduler)
-- Daily overdue job work order alerts (system notifications)
-- Rate card expiry review reminders (90+ days stale)
-- High wastage alerts (>15%) on Fabric Wastage Log submission
-- Workflow-based status transitions on Job Work Orders
+- **Daily**: Overdue trip detection — alerts when trips remain in "Planned" past dispatch date
+- **Weekly**: Transporter SLA analytics update — recalculates compliance % and trip counts
+- **On Submit**: Auto-actual dispatch time recording
+- **On Stop Update**: Auto-arrival time when status changes to Delivered
+- **On Status Change**: Delivery Status Log entries appended for every stop status change
+- **New Tracking ID**: System notification to Dispatch Manager when tracking IDs are generated
+- **Failed Delivery**: System notification with trip and stop details
+
+### 🏗️ Delivery Status Page (Internal)
+- Dedicated Frappe **Page** (`/app/delivery-status`) for dispatch staff
+- Same tracking functionality as the public portal, but within the ERP backend
+- Allows dispatch managers to look up any tracking ID from the Frappe interface
+
+### 🛣️ Route Optimization (Extensible)
+- Built-in **stub** for external routing API integration (Google Directions / OSRM)
+- Collects origin warehouse address and all stop addresses
+- Ready-to-implement code structure — just uncomment and add API key
+- Falls back gracefully with informative message when not configured
 
 ### 🔒 Role-Based Access Control
 
-| Role | Access Level |
-|------|-------------|
-| **System Manager** | Full administrative access |
-| **Job Work Manager** | Full CRUD on all doctypes, submit/amend/cancel, rate card visibility |
-| **Contractor Coordinator** | Create and read access, no delete, no rate card visibility |
+| Role | Delivery Trip | Transporter | Trip Cost Recon | Delivery Stop |
+|------|:------------:|:----------:|:--------------:|:------------:|
+| **System Manager** | Full CRUD + Submit/Amend/Cancel | Full CRUD | Full CRUD | Full CRUD |
+| **Dispatch Manager** | Full CRUD + Submit/Amend/Cancel | Full CRUD | Full CRUD | Full CRUD |
+| **Driver** | Read/Write | Read | — | Read/Write |
+| **All** | — | Read | — | — |
 
 ---
 
-## 🏗️ DocTypes (18 Total)
+## 🏗️ DocTypes (8 Total)
 
-The application includes **18 DocTypes** organized into Master Data, Transactions, and Child Tables.
+The application includes **8 DocTypes** organized into Master Data, Transactions, and Child Tables.
 
-### Master Data (6)
-
-| DocType | Purpose |
-|---------|---------|
-| **Job Contractor** | External contractors performing textile processes |
-| **Loom** | Factory floor machines with status and performance metrics |
-| **Raw Material Batch** | Incoming raw material with certification and origin tracking |
-| **Fabric Roll** | Finished fabric rolls with measurements and quality grading |
-| **Pattern Template** | Cutting pattern definitions with piece dimensions |
-| **Machine Output Log** | Per-shift machine production logging |
-
-### Transaction DocTypes (5)
+### Master Data (1)
 
 | DocType | Purpose |
 |---------|---------|
-| **Job Work Order** | Core transaction — fabric sent for processing (submittable) |
-| **Fabric Wastage Log** | Wastage recording with category and cause tracking |
-| **Cutting Plan** | Cutting layout planning linked to fabric rolls (submittable) |
-| **Production Schedule** | Shift-based production planning (submittable) |
-| **Vendor Delivery Schedule** | Supplier delivery tracking (submittable) |
+| **Transporter** | Logistics service providers with vehicle types, service areas, and SLA analytics |
 
-### Child Tables (7)
+### Transaction DocTypes (2)
+
+| DocType | Purpose | Submittable |
+|---------|---------|:-----------:|
+| **Delivery Trip** | Core transaction — multi-stop delivery with workflow status | ✅ Yes |
+| **Trip Cost Reconciliation** | Fuel cost and payout reconciliation per trip | ❌ No |
+
+### Child Tables (5)
 
 | DocType | Parent | Purpose |
 |---------|--------|---------|
-| **Contractor Rate Item** | Job Contractor | Per-process rates with effective dates |
-| **Job Work Order Process** | Job Work Order | Multi-process tracking per order |
-| **Job Work Return** | Job Work Order | Return receipts with wastage logging |
-| **Cutting Plan Item** | Cutting Plan | Pattern pieces in cutting layout |
-| **Pattern Piece** | Pattern Template | Individual piece dimensions and quantities |
-| **Fabric Roll Daily Production** | Fabric Roll | Daily garment production entries |
-| **Process History Entry** | Fabric Roll | Chronological manufacturing timeline |
+| **Delivery Stop** | Delivery Trip | Individual delivery stops with tracking, POD, and delivery window |
+| **Delivery Trip Delivery Note** | Delivery Trip | Links to standard ERPNext Delivery Notes |
+| **Delivery Status Log** | Delivery Stop | Chronological status change history with timestamps |
+| **Transporter Vehicle Type** | Transporter | Vehicle definitions with capacity and rate per km |
+| **Transporter Service Area** | Transporter | Pincode range-based service coverage areas |
 
 ---
 
@@ -144,7 +122,7 @@ The application includes **18 DocTypes** organized into Master Data, Transaction
 
 ### Prerequisites
 - **Frappe v15+** installed and configured
-- **ERPNext v15+** installed (for stock integration)
+- **ERPNext v15+** installed (for Delivery Note and Supplier linking)
 - Python 3.10+
 
 ### Step-by-Step Installation
@@ -153,13 +131,13 @@ The application includes **18 DocTypes** organized into Master Data, Transaction
 # 1. Navigate to your Frappe bench directory
 cd ~/frappe-bench
 
-# 2. Get the app (use --skip-assets for Frappe v15 to avoid esbuild ordering issues)
-bench get-app --skip-assets https://github.com/Pasha1234565/textile_tracking.git
+# 2. Get the app
+bench get-app https://github.com/your-org/msme_logistics.git
 
 # 3. Install the app on your site
-bench --site your-site.local install-app textile_tracking
+bench --site your-site.local install-app msme_logistics
 
-# 4. Build assets after installation
+# 4. Build assets
 bench build
 
 # 5. Run migration to sync everything
@@ -169,31 +147,31 @@ bench --site your-site.local migrate
 bench --site your-site.local clear-cache
 ```
 
-> **Note for Frappe v15 users**: If you encounter an esbuild error during `bench get-app`, use the `--skip-assets` flag. This is a known Frappe v15 interaction where the asset build runs before the app is registered in `apps.txt`.
+> **Note for Frappe v15 users**: If you encounter an esbuild error during `bench get-app`, use the `--skip-assets` flag.
 
 ### Quick Start (After Installation)
 
 1. Log in to your Frappe site as **Administrator**
-2. Navigate to the **Textile Tracking** workspace
-3. Start by adding **Job Contractors** with rate cards
-4. Create a **Job Work Order** and send fabric for processing
-5. Log returns and wastage when received
-6. Track contractor performance via **Reports**
+2. Navigate to the **MSME** workspace
+3. Start by adding **Transporters** with vehicle types and service areas
+4. Create a **Delivery Trip** and add delivery stops with tracking IDs
+5. Update stop statuses as deliveries progress
+6. Reconcile trip costs after completion
+7. Share tracking IDs with customers for real-time visibility
 
 ### Insert Demo Data
 
 ```bash
-# Via CLI command
-bench --site your-site.local insert-demo-data
-
-# Or via bench console
+# Via Frappe console
 bench --site your-site.local console
 ```
 
 ```python
-exec(open("../apps/textile_tracking/textile_tracking/commands.py").read())
-insert_demo_data()
+import msme_logistics.commands
+msme_logistics.commands.insert_demo_data()
 ```
+
+Or simply install the app — demo data is auto-inserted via the `after_install` hook.
 
 ---
 
@@ -201,136 +179,82 @@ insert_demo_data()
 
 ### Site Configuration
 
-Ensure your site's `site_config.json` includes:
+No special site configuration is required. The app works out of the box with standard Frappe setup.
+
+### Route Optimization (Optional)
+
+For route optimization with Google Directions API, add to your `site_config.json`:
 ```json
 {
-  "host_name": "http://your-domain:8000"
+  "google_maps_api_key": "YOUR_API_KEY_HERE"
 }
 ```
 
-### Stock Integration
-
-For automatic Stock Entry creation on Job Work Orders:
-1. Go to **Stock Settings**
-2. Enable **Allow Material Transfer to Subcontractor**
-3. Set your **Default Warehouse**
+Then update `msme_logistics/logistics/api.py` to uncomment the API call block.
 
 ---
 
-## 🌐 Web Portals
+## 🌐 Web Portal
 
-### Digital Product Passport (`/dpp/<roll_id>`)
-- EU 2027-compliant fabric lifecycle page
-- Full traceability: raw material → production → finished roll
-- QR code generation for physical roll verification
-- Process timeline visualization
-- Certification badges (GOTS, OEKO-TEX, Fair Trade)
-- Publicly accessible with no login required
-
-### Factory Floor Dashboard (`/loom-dashboard`)
-- Real-time machine status monitoring
-- Summary stats: running, idle, down/maintenance counts
-- Per-machine metrics with color-coded cards
-- Today's production schedule display
-- Responsive design for shop floor displays
-
-### Supplier Collaboration Portal (`/supplier-portal`)
-- Secure login with Frappe authentication
-- Delivery schedule overview per supplier
-- Inline date/status updates
-- Stats dashboard for quick reference
-- Designed for external supplier use
-
----
-
-## 🛠️ Development
-
-### Setting Up for Development
-
-```bash
-# Get the app in developer mode
-bench get-app --skip-assets https://github.com/Pasha1234565/textile_tracking.git
-
-# Set developer mode
-bench --site your-site.local set-config developer_mode 1
-
-# Install for development
-bench --site your-site.local install-app textile_tracking
-
-# Watch for changes (auto-builds assets)
-bench watch
-```
-
-### Project Structure
-
-```
-textile_tracking/
-├── hooks.py                       # App hooks, fixtures, scheduler, before_request
-├── modules.txt                    # Module registration
-├── patches.txt                    # Migration patch sequence
-├── patches/                       # Migration patches (5 total)
-├── commands.py                    # CLI commands for demo data
-├── textile/                       # Main module directory
-│   ├── api.py                     # Stock transfer/receipt creation
-│   ├── tasks.py                   # Scheduled background jobs (3 daily tasks)
-│   ├── doctype/                   # All 18 DocType definitions
-│   ├── report/                    # 5 Report definitions
-│   └── workspace/                 # Workspace configuration
-└── www/                           # Web pages (3 portals)
-    ├── dpp.html + dpp.py          # Digital Product Passport
-    ├── loom_dashboard.html + .py  # Factory Floor Dashboard
-    └── supplier_portal.html + .py # Supplier Collaboration Portal
-```
-
-### Garment Process Mapping
-
-The app auto-populates processes based on garment type:
-
-| Garment Type | Processes |
-|-------------|-----------|
-| Shirt | Cutting → Stitching → Finishing |
-| T-Shirt | Cutting → Stitching → Finishing |
-| Saree | Cutting → Stitching → Dyeing → Embroidery → Finishing |
-| Jeans | Cutting → Stitching → Dyeing → Finishing |
-| Kurta | Cutting → Stitching → Finishing |
-| Dupatta | Cutting → Dyeing → Finishing |
-| Fabrics (Roll) | Dyeing → Finishing |
-| Dress | Cutting → Stitching → Embroidery → Finishing |
+### Order Tracking (`/track`)
+- Public, customer-facing tracking page — no login required
+- Enter tracking ID (**TRK-XXXXXXXX**) to view live delivery status
+- Visual 4-step stepper with animated active/completed/failed states
+- Current location and estimated delivery date display
+- Full tracking timeline with chronological history
+- Rate-limited API (10 requests/minute/IP)
+- Shareable links: `/track?id=TRK-A7X9K2M1`
 
 ---
 
 ## 📊 Feature Details
 
-### True Cost Per Piece Calculation
+### SLA Compliance Calculation
 
-The True Cost Per Piece report factors in hidden waste costs:
-
-```python
-True Cost = (Labor Cost + Wastage Cost) / Qty Received
-
-Labor Cost    = Rate Per Piece × Qty Received
-Wastage Cost  = Wastage Qty × Raw Material Valuation Rate
-```
-
-### Fabric Requirement Estimates
-
-Built-in fabric consumption database for 8 garment types × 5 sizes (S-XXL):
+The SLA Compliance report compares `actual_arrival_time` against the `delivery_window_end`:
 
 ```
-Shirt Size M:  1.4 meters per garment
-T-Shirt Size L: 1.2 meters per garment
-Saree: 5.5 meters (all sizes)
+Within SLA = Yes  → TIME(actual_arrival_time) ≤ delivery_window_end
+Within SLA = No   → TIME(actual_arrival_time) > delivery_window_end
+Within SLA = N/A  → Not yet delivered or missing data
+Delay (mins)     → Minutes past the delivery window end
 ```
 
-### Workflow States & Transitions
+### ETA Estimation Logic
+
+The `get_estimated_delivery` API uses a two-priority approach:
 
 ```
-Draft ──[Send to Contractor]──▶ Sent
-Sent  ──[Partial Return]──────▶ Partially Received
-Sent  ──[Full Return]─────────▶ Received
-Partially Received ──[Partial Return]──▶ Partially Received
-Partially Received ──[Full Return]─────▶ Received
-Received ──[Close Order]──────▶ Closed
+Priority 1: Manually set `estimated_delivery_date` on the stop → Return as-is
+Priority 2: Derive from trip date + transporter's default_transit_days
+  → days_to_add = ceil(transit_days × (sequence_no / total_stops))
+  → ETA = trip_date + days_to_add
+```
+
+### Cost Per Stop Calculation
+
+Auto-calculated on the Trip Cost Reconciliation doctype:
+
+```
+Cost Per Stop = (Fuel Cost + Transporter Payout) / Total Stops
+```
+
+### Delivery Stop Statuses
+
+| Status | Description |
+|--------|-------------|
+| **Pending** | Stop planned, not yet attempted |
+| **Delivered** | Successfully delivered with POD captured |
+| **Failed** | Delivery attempted but unsuccessful |
+| **Rescheduled** | Delivery rescheduled to a later date |
+
+### Workflow States & Transitions (Delivery Trip)
+
+```
+Planned ──[Dispatch]─────▶ Dispatched
+Dispatched ──[Start Transit]──▶ In Transit
+In Transit ──[Complete]───▶ Completed
+Completed ──[Reconcile]───▶ Reconciled
 ```
 
 ---
@@ -342,36 +266,30 @@ Received ──[Close Order]──────▶ Closed
 | Issue | Likely Cause | Solution |
 |-------|-------------|----------|
 | `LinkValidationError` during install | Roles missing | Re-run `install-app` |
-| Child table missing columns (`parent`, `parenttype`, `parentfield`) | Incomplete migration | Run `bench migrate` twice |
+| Child table missing columns | Incomplete migration | Run `bench migrate` twice |
 | Reports show blank page | Module Def missing | Run `bench migrate` |
-| Controller resolution error | Stale DocType records | Re-install the app |
-| Workspace blocks broken | Socket.IO disconnected | Clear cache, restart bench |
-| Stock Entry not created | Stock Settings not configured | Enable subcontractor transfer |
+| Tracking page shows "No order found" | Invalid tracking ID format | Ensure ID format is `TRK-XXXXXXXX` |
+| POD validation blocks completion | Missing POD image | Upload POD image before completing trip |
+| Route optimization returns stub | API not configured | Add Google Maps API key and uncomment code |
 
 ### Child Table Fix
 
-If child tables are missing parent columns, the app automatically fixes this via:
+The app automatically fixes missing parent columns via:
 - `before_request` hook (on first HTTP request)
 - `after_migrate` hook (during every `bench migrate`)
 
-### Manual Child Table Repair
-
-```python
-frappe.db.sql("ALTER TABLE `tabContractor Rate Item` ADD COLUMN `parent` varchar(255) DEFAULT NULL")
-frappe.db.sql("ALTER TABLE `tabContractor Rate Item` ADD COLUMN `parenttype` varchar(255) DEFAULT NULL")
-frappe.db.sql("ALTER TABLE `tabContractor Rate Item` ADD COLUMN `parentfield` varchar(255) DEFAULT NULL")
-```
-
 ---
 
-## 🍃 Design History
+## 🔔 Design Decisions
 
 | Concept | Implementation |
 |---------|---------------|
-| Multi-process JWO | Each Job Work Order has a child table of processes, each with its own contractor, dates, and status |
-| Garment-specific workflows | Process mapping per garment type auto-populates the processes table |
-| Digital Product Passport | Public web page with QR code, process timeline, and full traceability |
-| True Cost Analytics | Factors in raw material cost of wastage to reveal hidden costs per contractor |
+| Multi-stop trips | Each Delivery Trip has a child table of Delivery Stops with sequenced routing |
+| Tracking IDs | Auto-generated `TRK-XXXXXXXX` format using `secrets` module with collision retry |
+| SLA Enforcement | Per-stop delivery windows compared against actual arrival timestamps |
+| POD Enforcement | Trip cannot transition to Completed if any Delivered stop is missing POD |
+| ETA Estimation | Prorated by stop sequence across total transit days |
+| Cost Modeling | Separate fuel cost and transporter payout fields for granular analysis |
 
 ---
 
@@ -393,11 +311,10 @@ This project is licensed under the **MIT License**.
 
 ## 📬 Support
 
-- **Email**: info@example.com
-- **Issues**: [GitHub Issues](https://github.com/Pasha1234565/textile_tracking/issues)
+- **Issues**: [GitHub Issues](https://github.com/your-org/msme_logistics/issues)
 
 ---
 
 <p align="center">
-  Built with ❤️ for textile manufacturers, one stitch at a time.
+  Built with ❤️ for MSME logistics operators, one delivery at a time.
 </p>
